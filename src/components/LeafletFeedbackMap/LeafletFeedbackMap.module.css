@@ -1,0 +1,108 @@
+.map {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border-radius: inherit;
+  overflow: hidden;
+  background: var(--ui-surface-subtle);
+}
+
+.marker {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--marker-color);
+  border: 3px solid var(--ui-surface);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--marker-color) 34%, transparent);
+}
+
+.markerActive {
+  box-shadow:
+    0 14px 28px color-mix(in srgb, var(--marker-color) 38%, transparent),
+    0 0 0 5px color-mix(in srgb, var(--marker-color) 18%, transparent);
+}
+
+.subMarker {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--marker-color);
+  border: 3px solid var(--ui-surface);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 850;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--marker-color) 24%, transparent);
+  transition: transform 0.2s;
+}
+
+.subMarker:hover {
+  transform: scale(1.15);
+}
+
+/* Custom Popup Menu Style */
+.mapMenu {
+  min-width: 156px;
+  padding: 6px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.menuHeader {
+  padding: 6px 12px 10px;
+  border-bottom: 1px solid var(--ui-surface-subtle);
+  margin-bottom: 4px;
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 850;
+  display: block;
+}
+
+.menuItem {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--ui-surface-subtle);
+}
+
+/* Leaflet Overrides */
+.map :global(.leaflet-popup-content-wrapper) {
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+.map :global(.leaflet-popup-content) {
+  margin: 0;
+}
+
+.map :global(.leaflet-popup-tip-container) {
+  display: none;
+}
+
+.map :global(.leaflet-popup-close-button) {
+  display: none;
+}

@@ -1,0 +1,44 @@
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sortSelectWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text-3);
+}
+
+.sortSelectWrap select {
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 850;
+  outline: none;
+}
+
+.mobileAside {
+  padding: 18px 24px 32px;
+  border-top: 1px solid var(--border);
+  background: rgba(248, 251, 255, 0.65);
+}
+
+@media (max-width: 760px) {
+  .headerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mobileAside {
+    padding-inline: 16px;
+  }
+}

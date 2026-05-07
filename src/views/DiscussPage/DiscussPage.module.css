@@ -1,0 +1,513 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  background: var(--ui-bg);
+  min-height: 100%;
+}
+
+.cardWrap {
+  background: #fff;
+}
+
+.feedCardNoRadius {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+  margin-top: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Composer Card Styling (Like PostPromptCard) */
+.composerCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+}
+
+.composerMain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inputBox {
+  flex: 1;
+  min-width: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--ui-border);
+  background: var(--ui-surface-subtle);
+  transition: all 0.2s;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.inputBoxFocused {
+  background: #fff;
+  border-color: var(--ui-accent);
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.inputRow1 {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  position: relative;
+}
+
+.discussInput {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--ui-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  resize: none !important;
+  outline: none;
+  display: block;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.discussInput::-webkit-scrollbar {
+  display: none;
+}
+
+.inputIconsRight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.miniIconBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.miniIconBtn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--ui-accent);
+}
+
+.inputRow2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0px 8px 8px 8px;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.row2Left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.composerActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.iconBtn:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: var(--ui-accent);
+}
+
+.sendBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ui-accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sendBtn:disabled {
+  background: var(--ui-surface-subtle);
+  color: var(--ui-text-muted);
+  cursor: default;
+}
+
+.sendBtn:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: var(--ui-accent-strong);
+}
+
+/* Attach Tray */
+.attachTray {
+  padding-top: 4px;
+}
+
+.attachPreviewGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachPreview {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--ui-border);
+}
+
+.attachPreview img,
+.attachPreview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachPreview button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.7);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.replyBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--brand-soft);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ui-text-muted);
+}
+
+.replyBar strong {
+  color: var(--ui-text);
+}
+
+.replyBar button {
+  background: none;
+  border: none;
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  display: flex;
+}
+
+/* Stats & Filter Row */
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--ui-border);
+  background: #fff;
+  min-height: var(--header-h);
+}
+
+.statsLeft {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ui-text);
+}
+
+.statsRight {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  height: var(--header-h);
+}
+
+.filterBtn {
+  position: relative;
+  height: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ui-text-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.filterBtn::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.filterBtnActive {
+  color: var(--ui-accent);
+  font-weight: 800;
+}
+
+.filterBtnActive::after {
+  background: var(--ui-accent);
+}
+
+.filterBtn:hover {
+  color: var(--ui-text);
+}
+
+/* Thread Styling */
+.thread {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--ui-border-subtle);
+  background: #fff;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.itemBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ui-text);
+}
+
+.handle {
+  font-size: 13px;
+  color: var(--ui-text-muted);
+}
+
+.time {
+  font-size: 13px;
+  color: var(--ui-text-subtle);
+}
+
+.time::before {
+  content: '·';
+  margin-right: 6px;
+}
+
+.bodyText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ui-text);
+  white-space: pre-wrap;
+}
+
+.itemActions {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.actionBtn {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ui-text-muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.actionBtn:hover {
+  color: var(--ui-accent);
+}
+
+.likeMeta {
+  font-size: 12px;
+  color: var(--ui-text-subtle);
+}
+
+.fileInput {
+  display: none;
+}
+
+.error {
+  padding: 12px 20px;
+  color: var(--ui-destructive);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.empty {
+  padding: 60px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--ui-text-muted);
+}
+
+.empty p {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ui-text);
+  margin: 0;
+}
+
+.empty span {
+  font-size: 14px;
+}
+
+.discussInput {
+  min-height: 44px;
+  max-height: 130px;
+  border-radius: 8px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.attachInput {
+  border-radius: 8px;
+}
+
+.replyBar {
+  border-top: 1px solid var(--border);
+}
+
+.empty {
+  margin: 18px 24px 24px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+@media (max-width: 580px) {
+  .stickyBar {
+    min-height: 62px;
+    padding: 0 14px;
+  }
+
+  .pageSub,
+  .qualityBadge {
+    display: none;
+  }
+
+  .discussHeader,
+  .summaryBand,
+  .threadIntro,
+  .thread,
+  .inputRow,
+  .composerTop,
+  .replyBar,
+  .attachPanel,
+  .attachTray {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .attachPreviewGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .summaryCards {
+    grid-template-columns: 1fr;
+  }
+
+  .threadIntro {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .item {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .itemReply {
+    margin-left: calc(14px * min(var(--reply-depth), 4));
+  }
+
+  .avatar {
+    width: 38px;
+    height: 38px;
+  }
+
+  .time {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .composerHint {
+    display: none;
+  }
+}

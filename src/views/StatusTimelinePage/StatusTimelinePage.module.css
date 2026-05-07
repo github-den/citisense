@@ -1,0 +1,91 @@
+.page {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--ui-border);
+}
+
+.header h1 {
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.header p {
+  margin-top: 4px;
+  color: var(--ui-text-muted);
+}
+
+.cardWrap {
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.timeline {
+  display: grid;
+  gap: 0;
+  padding: 8px 18px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--ui-border);
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.markerCol {
+  display: grid;
+  justify-items: center;
+  grid-template-rows: auto 1fr;
+}
+
+.marker {
+  width: 12px;
+  height: 12px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--ui-accent);
+}
+
+.line {
+  width: 2px;
+  background: var(--ui-border);
+  margin-top: 6px;
+}
+
+.body {
+  padding: 0 0 18px;
+}
+
+.status {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ui-text);
+}
+
+.when,
+.by {
+  margin-top: 4px;
+  color: var(--ui-text-muted);
+  font-size: 13px;
+}
+
+.empty {
+  padding: 28px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--ui-border);
+  color: var(--ui-text-muted);
+  text-align: center;
+}

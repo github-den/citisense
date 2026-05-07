@@ -1,0 +1,365 @@
+.page {
+  min-height: 100%;
+}
+
+.stickyBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 251, 255, 0.93));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+
+.headerRow {
+  min-height: 82px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+}
+
+.headerTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.65px;
+}
+
+.headerSub {
+  margin: 6px 0 0;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.headerBadge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--brand-light);
+  color: var(--brand);
+  border: 1px solid rgba(24, 71, 240, 0.14);
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tabs {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border-top: 1px solid rgba(219, 228, 239, 0.75);
+}
+
+.tabBtn {
+  min-width: 0;
+  padding: 15px 8px;
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 900;
+  transition: color 0.14s var(--ease-out), background 0.14s var(--ease-out);
+}
+
+.tabBtn:hover {
+  color: var(--text);
+  background: #f8fbff;
+}
+
+.active {
+  color: var(--text);
+}
+
+.tabLabel {
+  position: relative;
+}
+
+.active .tabLabel::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -15px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+.body {
+  display: grid;
+  gap: 16px;
+}
+
+.panel,
+.rowCard,
+.asideCard,
+.heroCard,
+.emptyCard {
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.heroCard {
+  padding: 22px 24px;
+}
+
+.rowCard {
+  padding: 18px 24px;
+}
+
+.panel {
+  padding: 22px 24px;
+}
+
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 300px;
+  padding: 40px 24px 70px;
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.emptyText {
+  max-width: 360px;
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.sectionTitle {
+  margin: 0 0 14px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: -0.18px;
+}
+
+.subtleLabel {
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.statCard {
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: rgba(248, 251, 255, 0.92);
+}
+
+.statValue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.statText {
+  margin-top: 5px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.asideStack {
+  display: grid;
+  gap: 14px;
+}
+
+.asideCard {
+  padding: 18px;
+  border: 1px solid rgba(219, 228, 239, 0.95);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.asideTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.asideText {
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.linkList {
+  display: grid;
+  gap: 8px;
+}
+
+.linkRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill,
+.statusPill,
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.pill,
+.tag {
+  background: var(--surface-2);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+}
+
+.statusPill {
+  background: rgba(24, 71, 240, 0.08);
+  color: var(--brand);
+  border: 1px solid rgba(24, 71, 240, 0.14);
+}
+
+.success {
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--green);
+  border-color: rgba(22, 163, 74, 0.18);
+}
+
+.warning {
+  background: rgba(217, 119, 6, 0.1);
+  color: var(--yellow);
+  border-color: rgba(217, 119, 6, 0.18);
+}
+
+.danger {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--red);
+  border-color: rgba(220, 38, 38, 0.16);
+}
+
+.info {
+  background: rgba(24, 71, 240, 0.08);
+  color: var(--brand);
+  border-color: rgba(24, 71, 240, 0.14);
+}
+
+.neutral {
+  background: var(--surface-2);
+  color: var(--text-2);
+  border-color: var(--border);
+}
+
+.skeletonStack {
+  display: grid;
+}
+
+.skeletonCard {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.skeletonLine,
+.skeletonDot {
+  display: block;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #e8eef8 0%, #f7faff 45%, #e8eef8 90%);
+  background-size: 220% 100%;
+  animation: shimmer 1.35s ease-in-out infinite;
+}
+
+.skeletonDot {
+  width: 40px;
+  height: 40px;
+}
+
+.skeletonLine {
+  height: 12px;
+  margin-top: 10px;
+}
+
+.skeletonLine:first-of-type {
+  width: 55%;
+}
+
+.skeletonLine:last-of-type {
+  width: 80%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@media (max-width: 760px) {
+  .headerRow {
+    padding-inline: 16px;
+  }
+
+  .heroCard,
+  .rowCard,
+  .panel,
+  .skeletonCard {
+    padding-inline: 16px;
+  }
+
+  .statGrid {
+    grid-template-columns: 1fr;
+  }
+}

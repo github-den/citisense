@@ -1,0 +1,433 @@
+.mainFeedArea {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.searchHeaderSticky {
+  position: sticky;
+  top: var(--sticky-stack-h);
+  z-index: 10;
+  background: #ffffff;
+  padding: 24px 24px 16px;
+  margin: -28px -32px 0;
+  border-bottom: 1px solid var(--ui-border);
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  background: #ffffff;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  height: 48px;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-xs);
+}
+
+.searchBar:focus-within {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-accent) 12%, transparent);
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ui-text);
+}
+
+.feedWrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 0;
+}
+
+/* ASIDE COMPONENTS */
+.asideSticky {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.widget {
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-xs);
+  position: relative; /* Ensure z-index works if needed */
+}
+
+.widgetTitle {
+  font-size: 16px;
+  font-weight: 800;
+  padding: 0;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-text);
+}
+
+.filterGroup {
+  margin: 0 0 4px; /* Removed horizontal margins as widget handles it now */
+}
+
+.groupToggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ui-text-muted);
+}
+
+.groupToggle:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
+}
+
+.groupActive {
+  background: color-mix(in srgb, var(--brand) 8%, white);
+  color: var(--brand);
+}
+
+.groupLabel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.groupActive .groupLabel {
+  color: var(--brand);
+}
+
+.groupContent {
+  padding: 8px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ui-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.field select {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-bg);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ui-text);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.field select:focus {
+  border-color: var(--ui-accent);
+}
+
+.listBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.otherItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px; /* Standardized padding */
+  border-radius: 0;
+  font-size: 14px;
+  color: var(--text-2);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+}
+
+.otherItem:last-child {
+  border-bottom: none;
+}
+
+.otherItem:hover {
+  background: var(--ui-surface-hover);
+  color: var(--ui-accent);
+}
+
+/* EMPTY STATES */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  text-align: center;
+  gap: 12px;
+}
+
+.empty h3 {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ui-text);
+  margin: 0;
+}
+
+.empty p {
+  font-size: 15px;
+  color: var(--ui-text-subtle);
+  margin: 0;
+  max-width: 320px;
+}
+
+/* CITIZEN LIST */
+.citizenList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.citizenCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  margin: 16px 0 0;
+  transition: box-shadow 0.18s;
+}
+
+.citizenCard:hover {
+  box-shadow: var(--shadow-xs);
+}
+
+/* Avatar */
+.citizenAvatarWrap {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.citizenAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.citizenAvatarInit {
+  width: 100%;
+  height: 100%;
+  background: var(--brand);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+/* Username button */
+.citizenUsername {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ui-text);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.citizenUsername:hover {
+  text-decoration: underline;
+  color: var(--brand);
+}
+
+/* Vertical divider */
+.citizenVDivider {
+  width: 1px;
+  height: 32px;
+  background: var(--ui-border);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+/* Stats */
+.citizenStats {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+}
+
+.citizenStat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+
+.citizenStatNum {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ui-text);
+  line-height: 1.2;
+}
+
+.citizenStatLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ui-text-subtle);
+  white-space: nowrap;
+}
+
+/* Actions */
+.citizenActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.citizenFollowBtn {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--brand);
+  background: color-mix(in srgb, var(--brand) 6%, #ffffff);
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.citizenFollowBtn:hover {
+  background: var(--brand);
+  color: #ffffff;
+}
+
+.citizenBlockBtn {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid #ef4444;
+  background: transparent;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.citizenBlockBtn:hover {
+  background: #fef2f2;
+}
+
+/* Skeleton for citizen cards */
+.citizenCardSkel {
+  height: 78px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  margin: 16px 0 0;
+  background: linear-gradient(90deg, var(--ui-surface-hover) 25%, var(--ui-surface) 50%, var(--ui-surface-hover) 75%);
+  background-size: 200% 100%;
+  animation: citizenShimmer 1.5s infinite;
+}
+
+@keyframes citizenShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+
+/* FOOTER */
+.asideFooter {
+  margin-top: 24px;
+  padding: 12px 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  line-height: 1.4;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.footerWordmark {
+  color: var(--ui-accent);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.footerSep {
+  white-space: pre;
+}
+
+.footerLink {
+  color: var(--text-3);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  transition: color 0.12s var(--ease-out);
+}
+
+.footerLink:hover {
+  color: var(--ui-accent);
+  text-decoration: underline;
+}
+

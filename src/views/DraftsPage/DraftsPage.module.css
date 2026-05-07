@@ -1,0 +1,138 @@
+.draftCard {
+  display: grid;
+  gap: 16px;
+}
+
+.draftTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.draftTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.3px;
+}
+
+.draftDate {
+  margin-top: 6px;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.warningRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.actions,
+.modalActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primaryBtn,
+.dangerBtn,
+.modalGhost,
+.modalDanger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.primaryBtn {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(24, 71, 240, 0.18);
+}
+
+.dangerBtn,
+.modalDanger {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--red);
+  border: 1px solid rgba(220, 38, 38, 0.16);
+}
+
+.mobileAside {
+  padding: 18px 24px 32px;
+  border-top: 1px solid var(--border);
+  background: rgba(248, 251, 255, 0.65);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 23, 42, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.modalCard {
+  width: min(420px, 100%);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
+  padding: 22px;
+}
+
+.modalCard h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 950;
+}
+
+.modalCard p {
+  margin: 10px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.modalActions {
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.modalGhost {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+@media (max-width: 760px) {
+  .actions,
+  .modalActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mobileAside {
+    padding-inline: 16px;
+  }
+}
