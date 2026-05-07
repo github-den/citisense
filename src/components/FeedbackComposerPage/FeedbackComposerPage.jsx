@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { createPortal } from 'react-dom';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowBendUpRight,
   CheckCircle,
@@ -17,13 +18,17 @@ import {
 } from '@phosphor-icons/react';
 import PageSectionHeader from '../ui/PageSectionHeader.jsx';
 import { useAuth } from '@core/context/AuthContext.jsx';
+import { routes } from '@core/lib/navigation/routes.js';
 import { SERVICE_CATEGORY_OPTIONS, URDANETA_BARANGAYS } from '../../constants/index.js';
-import { clearFeedbackDraft, getFeedbackDraftKey, loadFeedbackDraft, saveFeedbackDraft } from '@core/services/localState.js';
+import { clearFeedbackDraft, loadFeedbackDraft, saveFeedbackDraft } from '@core/services/localState.js';
+import { deleteDraftMediaItems, loadDraftMediaItems, saveDraftMediaItems } from '@core/services/draftMediaStore.js';
 import { createFeedbackPost } from '@core/services/posts.js';
 import { uploadMediaFiles } from '@core/services/media.js';
+import { lockPageScroll } from '@core/utils/lockPageScroll.js';
 import { dedupeMediaItems, getMediaGridModel, inferMediaType } from '@core/utils/mediaGrid.js';
 import SearchFilterSelect from '../ui/SearchFilterSelect.jsx';
 import MediaCarousel from '../MediaGrid/MediaCarousel.jsx';
+import { queueToastAfterNavigation } from '../Toast/Toast.jsx';
 
 import styles from '../../views/WriteFeedbackPage/WriteFeedbackPage.module.css';
 
@@ -62,6 +67,14 @@ function createLocalMediaItems(files = []) {
     isLocal: true,
     label: file.name,
   }));
+}
+
+function createDraftId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function hasOutsideJurisdiction(value) {
@@ -159,10 +172,44 @@ function CheckRow({ label, done, statusLabel }) {
   );
 }
 
+function FeedbackComposerModal({
+  mounted,
+  title,
+  body = null,
+  actions = null,
+  children = null,
+  onClose = null,
+}) {
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      className={styles.draftModalOverlay}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+      onMouseDown={() => onClose?.()}
+    >
+      <div className={styles.draftModalCard} onMouseDown={(event) => event.stopPropagation()}>
+        <div className={styles.draftModalTitle}>{title}</div>
+        {body ? <p className={styles.draftModalBody}>{body}</p> : null}
+        {children}
+        {actions ? <div className={styles.modalActionRow}>{actions}</div> : null}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function FeedbackComposerPage({ setPage }) {
   const { session, requireAuth } = useAuth();
-  const draftKey = getFeedbackDraftKey();
   const [form, setForm] = useState(INITIAL_FORM);
+  const [draftName, setDraftName] = useState('');
+  const [currentDraftId, setCurrentDraftId] = useState(null);
+  const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState(null);
   const [error, setError] = useState('');
@@ -180,6 +227,17 @@ export default function FeedbackComposerPage({ setPage }) {
   const searchParams = useSearchParams();
 
   const shortcutProcessed = useRef(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return undefined;
+    const hasOpenModal = isDraftModalOpen || !!confirmModal;
+    if (!hasOpenModal) return undefined;
+    return lockPageScroll();
+  }, [confirmModal, isDraftModalOpen, mounted]);
 
   useEffect(() => {
     if (shortcutProcessed.current) return;
@@ -206,10 +264,40 @@ export default function FeedbackComposerPage({ setPage }) {
     const shortcut = searchParams.get('shortcut');
     if (caption || shortcut) return;
 
-    // Priority 2: Drafts
-    const saved = loadFeedbackDraft();
+    // Priority 2: Explicit draft resume only
+    const requestedDraftId = searchParams.get('draft');
+    if (!requestedDraftId) return;
+
+    const saved = loadFeedbackDraft(requestedDraftId);
     if (!saved) return;
-    setForm({ ...INITIAL_FORM, ...saved.form });
+
+    let cancelled = false;
+
+    async function restoreDraft() {
+      const restoredMediaItems = await loadDraftMediaItems(saved);
+      if (cancelled) {
+        restoredMediaItems.forEach((item) => {
+          if (item?.isLocal && item?.src) URL.revokeObjectURL(item.src);
+        });
+        return;
+      }
+
+      setForm({ ...INITIAL_FORM, ...(saved.form ?? {}) });
+      setDraftName(String(saved.name ?? ''));
+      setCurrentDraftId(saved.id ?? null);
+      setSelectedTypes(
+        Array.isArray(saved.selectedTypes) && saved.selectedTypes.length > 0
+          ? saved.selectedTypes
+          : [saved.form?.type].filter(Boolean),
+      );
+      setMediaItems(restoredMediaItems);
+    }
+
+    restoreDraft();
+
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams]);
 
   useEffect(() => {
@@ -334,13 +422,59 @@ export default function FeedbackComposerPage({ setPage }) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function saveDraft() {
-    saveFeedbackDraft(form);
-    showValidationNotice('Draft saved.');
+  function openSaveDraftModal() {
+    setIsDraftModalOpen(true);
+  }
+
+  function closeSaveDraftModal() {
+    setIsDraftModalOpen(false);
+  }
+
+  function closeConfirmModal() {
+    setConfirmModal(null);
+  }
+
+  async function saveDraft() {
+    const trimmedName = draftName.trim();
+    if (!trimmedName || isSavingDraft) return;
+
+    setIsSavingDraft(true);
+    const draftId = createDraftId();
+
+    try {
+      const persistedMediaItems = await saveDraftMediaItems(draftId, mediaItems);
+      saveFeedbackDraft(form, trimmedName, {
+        id: draftId,
+        selectedTypes,
+        mediaItems: persistedMediaItems,
+      });
+    } catch {
+      clearFeedbackDraft(nextDraft.id);
+      setIsSavingDraft(false);
+      showValidationNotice('Draft save failed. Please try again.');
+      return;
+    }
+
+    setIsDraftModalOpen(false);
+    setConfirmModal(null);
+    setIsSavingDraft(false);
+    queueToastAfterNavigation('Draft saved', {
+      type: 'info',
+      duration: 2600,
+      navigateTo: routes.profileDrafts,
+    });
+    window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
+    setPage?.('back');
+    window.setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('citisense:flush-pending-toasts'));
+    }, 220);
   }
 
   function resetForm() {
     setForm(INITIAL_FORM);
+    setDraftName('');
+    setCurrentDraftId(null);
+    setSelectedTypes([]);
     setStatus(null);
     setError('');
     setMediaItems((current) => {
@@ -349,7 +483,10 @@ export default function FeedbackComposerPage({ setPage }) {
       });
       return [];
     });
-    clearFeedbackDraft();
+    if (currentDraftId) {
+      clearFeedbackDraft(currentDraftId);
+      deleteDraftMediaItems(currentDraftId).catch(() => {});
+    }
   }
 
   function addMediaFiles(files) {
@@ -390,11 +527,27 @@ export default function FeedbackComposerPage({ setPage }) {
 
   function handleBackOrDiscard() {
     if (form.content.trim() || form.service || form.barangay || mediaItems.length > 0) {
-      if (!window.confirm('Discard the current feedback? Changes will be lost.')) return;
-      resetForm();
+      setConfirmModal('discard');
+      return;
     }
     window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
     setPage?.('feed');
+  }
+
+  function confirmDiscard() {
+    resetForm();
+    setConfirmModal(null);
+    window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
+    setPage?.('feed');
+  }
+
+  function openPostConfirmModal() {
+    setConfirmModal('post');
+  }
+
+  function confirmPost() {
+    setConfirmModal(null);
+    requireAuth(handleNext, 'Sign in to submit your report.');
   }
 
   async function submit(reviewResultOverride = null) {
@@ -447,7 +600,10 @@ export default function FeedbackComposerPage({ setPage }) {
       return;
     }
 
-    clearFeedbackDraft();
+    if (currentDraftId) {
+      clearFeedbackDraft(currentDraftId);
+      deleteDraftMediaItems(currentDraftId).catch(() => {});
+    }
 
     showValidationNotice('Feedback posted');
 
@@ -470,7 +626,7 @@ export default function FeedbackComposerPage({ setPage }) {
     }
 
     if (busy) return;
-    requireAuth(handleNext, 'Sign in to submit your report.');
+    openPostConfirmModal();
   }
 
   return (
@@ -650,7 +806,7 @@ export default function FeedbackComposerPage({ setPage }) {
                 Discard
               </button>
               <div className={styles.actionDivider} aria-hidden="true" />
-              <button className={`${styles.btn} ${styles.btnSecondary}`} type="button" onClick={saveDraft}>Save Draft</button>
+              <button className={`${styles.btn} ${styles.btnSecondary}`} type="button" onClick={openSaveDraftModal}>Save Draft</button>
               <button className={`${styles.btn} ${styles.btnPrimary}`} type="submit" disabled={busy}>
                 {busy ? 'Posting...' : 'Post'}
               </button>
@@ -659,10 +815,62 @@ export default function FeedbackComposerPage({ setPage }) {
         </form>
       </div>
 
-      
+      {isDraftModalOpen ? (
+        <FeedbackComposerModal
+          mounted={mounted}
+          title="Make a name for this draft"
+          onClose={closeSaveDraftModal}
+        >
+          <div className={styles.draftModalRow}>
+            <input
+              className={styles.draftNameInput}
+              type="text"
+              value={draftName}
+              onChange={(event) => setDraftName(event.target.value)}
+              placeholder="Enter draft name"
+              autoFocus
+            />
+            <button
+              type="button"
+              className={`${styles.draftSaveButton} ${draftName.trim() ? styles.draftSaveButtonReady : ''}`}
+              onClick={saveDraft}
+              disabled={!draftName.trim() || isSavingDraft}
+            >
+              {isSavingDraft ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </FeedbackComposerModal>
+      ) : null}
 
+      {confirmModal === 'discard' ? (
+        <FeedbackComposerModal
+          mounted={mounted}
+          title="Discard this feedback?"
+          body="Your current changes will be removed. This action cannot be undone."
+          onClose={closeConfirmModal}
+          actions={(
+            <>
+              <button type="button" className={styles.modalGhostButton} onClick={closeConfirmModal}>Cancel</button>
+              <button type="button" className={styles.modalDangerButton} onClick={confirmDiscard}>Discard</button>
+            </>
+          )}
+        />
+      ) : null}
 
-
+      {confirmModal === 'post' ? (
+        <FeedbackComposerModal
+          mounted={mounted}
+          title="Post this feedback?"
+          body="This will submit your feedback for review and publishing."
+          onClose={closeConfirmModal}
+          actions={(
+            <>
+              <button type="button" className={styles.modalGhostButton} onClick={closeConfirmModal}>Cancel</button>
+              <button type="button" className={styles.modalPrimaryButton} onClick={confirmPost}>Post</button>
+            </>
+          )}
+        />
+      ) : null}
 
     </div>
   );

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
-export default function ProfileForLaterRoute() {
+export default function SavedRoute() {
   redirect('/profile/saved');
 }

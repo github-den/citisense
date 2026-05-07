@@ -33,7 +33,7 @@ export default function SearchAside({ setPage, setSearchQuery }) {
           ))
         ) : (
           <EmptyState>
-            {trendingLoading ? 'Finding citywide searches...' : 'No searched topics yet.'}
+            {trendingLoading ? 'Finding citywide searches...' : 'No searched groups yet.'}
           </EmptyState>
         )}
       </div>

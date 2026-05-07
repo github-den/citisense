@@ -42,18 +42,6 @@ async function fetchAuthorMap(userIds) {
   ]));
 }
 
-async function fetchFeedboxMap(feedboxIds) {
-  if (feedboxIds.length === 0) return new Map();
-
-  const { data, error } = await supabase
-    .from('feedboxes')
-    .select('id, topic')
-    .in('id', feedboxIds);
-
-  if (error) return new Map();
-  return new Map((data ?? []).map(feedbox => [feedbox.id, feedbox]));
-}
-
 async function fetchFollowingIds(currentUserId) {
   if (!currentUserId) return [];
 
@@ -87,6 +75,27 @@ async function fetchUserRaises(currentUserId, postIds) {
   return new Set((data ?? []).map(row => row.post_id));
 }
 
+async function fetchRaiseCounts(postIds) {
+  if (postIds.length === 0) return new Map();
+
+  const { data, error } = await supabase
+    .from('raises')
+    .select('post_id')
+    .in('post_id', postIds);
+
+  if (error) {
+    console.error('Error fetching raise counts:', error);
+    return new Map();
+  }
+
+  const counts = new Map();
+  (data ?? []).forEach(row => {
+    if (!row?.post_id) return;
+    counts.set(row.post_id, (counts.get(row.post_id) ?? 0) + 1);
+  });
+  return counts;
+}
+
 async function fetchUserReactions(userId, postIds) {
   if (!supabase || !userId || postIds.length === 0) return new Map();
 
@@ -105,19 +114,18 @@ async function hydrateRows(rows, currentUserId) {
   if (rows.length === 0) return [];
   const postIds = rows.map(r => r.id).filter(Boolean);
   const userIds = [...new Set(rows.map(row => row.user_id ?? row.author_id).filter(Boolean))];
-  const feedboxIds = [...new Set(rows.map(row => row?.feedbox_id).filter(Boolean))];
 
   // Fetch all metadata in parallel for better performance
-  const [authorMap, feedboxMap, raisedIds, followingIds, reactionMap] = await Promise.all([
+  const [authorMap, raisedIds, followingIds, reactionMap, raiseCounts] = await Promise.all([
     fetchAuthorMap(userIds),
-    fetchFeedboxMap(feedboxIds),
     fetchUserRaises(currentUserId, postIds),
     (async () => {
       if (!currentUserId) return new Set();
       const ids = await fetchFollowingIds(currentUserId);
       return new Set(ids);
     })(),
-    fetchUserReactions(currentUserId, postIds)
+    fetchUserReactions(currentUserId, postIds),
+    fetchRaiseCounts(postIds),
   ]);
 
   return rows.map(row => {
@@ -125,7 +133,7 @@ async function hydrateRows(rows, currentUserId) {
     return {
       ...row,
       profiles: row.profiles ?? authorMap.get(userId) ?? null,
-      feedboxes: row.feedboxes ?? feedboxMap.get(row.feedbox_id) ?? null,
+      raises_count: raiseCounts.has(row.id) ? raiseCounts.get(row.id) : (row.raises_count ?? 0),
       raisedByMe: raisedIds.has(row.id),
       followedByMe: followingIds.has(userId),
       myReaction: reactionMap.get(row.id) || null

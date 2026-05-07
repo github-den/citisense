@@ -6,6 +6,84 @@ async function rpc(fn, params) {
   return { data, error };
 }
 
+function isMissingRpcFunction(error, fn) {
+  const message = String(error?.message ?? '').toLowerCase();
+  const target = String(fn ?? '').toLowerCase();
+  return message.includes('schema cache')
+    || message.includes('could not find the function')
+    || message.includes('function')
+    || (target && message.includes(target));
+}
+
+async function getCurrentUserId() {
+  if (!supabase) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
+async function tryInsertBookmark(postId, userId) {
+  if (!supabase || !postId || !userId) return { data: null, error: null };
+
+  const bookmarkPayload = { post_id: postId, user_id: userId };
+
+  const primaryInsert = await supabase
+    .from('bookmarks')
+    .insert(bookmarkPayload)
+    .select('post_id')
+    .maybeSingle();
+
+  if (!primaryInsert.error) return primaryInsert;
+  if (primaryInsert.error.code === '23505') return { data: { post_id: postId }, error: null };
+
+  const message = String(primaryInsert.error.message ?? '').toLowerCase();
+  const missingTable = message.includes('relation') || message.includes('does not exist');
+  if (!missingTable) return primaryInsert;
+
+  return supabase
+    .from('saved_posts')
+    .insert(bookmarkPayload)
+    .select('post_id')
+    .maybeSingle();
+}
+
+async function tryDeleteBookmark(postId, userId) {
+  if (!supabase || !postId || !userId) return { data: null, error: null };
+
+  const primaryDelete = await supabase
+    .from('bookmarks')
+    .delete()
+    .eq('post_id', postId)
+    .eq('user_id', userId);
+
+  if (!primaryDelete.error) return primaryDelete;
+
+  const message = String(primaryDelete.error.message ?? '').toLowerCase();
+  const missingTable = message.includes('relation') || message.includes('does not exist');
+  if (!missingTable) return primaryDelete;
+
+  return supabase
+    .from('saved_posts')
+    .delete()
+    .eq('post_id', postId)
+    .eq('user_id', userId);
+}
+
+async function fetchExactRaiseCount(postId) {
+  if (!supabase || !postId) return null;
+
+  const { count, error } = await supabase
+    .from('raises')
+    .select('post_id', { count: 'exact', head: true })
+    .eq('post_id', postId);
+
+  if (error) {
+    console.error('Error fetching exact raise count:', error);
+    return null;
+  }
+
+  return count ?? 0;
+}
+
 export const raisePost = async (postId, passedUserId = null) => {
   try {
     // 1. Prioritize passed ID (for demo users)
@@ -36,7 +114,13 @@ export const raisePost = async (postId, passedUserId = null) => {
 
     console.log('[raisePost] Attempting DB write for user:', finalUserId);
     const res = await rpc('raise_post', { p_post_id: postId });
-    if (!res.error) return res;
+    if (!res.error) {
+      const exactCount = await fetchExactRaiseCount(postId);
+      if (typeof exactCount === 'number') {
+        return { ...res, data: { ...(res.data ?? {}), raises_count: exactCount } };
+      }
+      return res;
+    }
 
     if (supabase) {
       // 1. Record the raise (using minimal return to avoid 403 select issues)
@@ -50,10 +134,18 @@ export const raisePost = async (postId, passedUserId = null) => {
       const { data: post } = await supabase.from('feedbacks').select('raises_count').eq('id', postId).single();
       const currentCount = post?.raises_count ?? 0;
 
-      return supabase
+      const updateResult = await supabase
         .from('feedbacks')
         .update({ raises_count: currentCount + 1 })
         .eq('id', postId);
+
+      if (updateResult.error) return updateResult;
+
+      const exactCount = await fetchExactRaiseCount(postId);
+      return {
+        ...updateResult,
+        data: { ...(updateResult.data ?? {}), raises_count: exactCount ?? (currentCount + 1) },
+      };
     }
     return res;
   } catch (err) {
@@ -90,7 +182,13 @@ export const unraisePost = async (postId, passedUserId = null) => {
     }
 
     const res = await rpc('unraise_post', { p_post_id: postId });
-    if (!res.error) return res;
+    if (!res.error) {
+      const exactCount = await fetchExactRaiseCount(postId);
+      if (typeof exactCount === 'number') {
+        return { ...res, data: { ...(res.data ?? {}), raises_count: exactCount } };
+      }
+      return res;
+    }
 
     if (supabase) {
       // 1. Remove the raise record
@@ -106,10 +204,18 @@ export const unraisePost = async (postId, passedUserId = null) => {
       const { data: post } = await supabase.from('feedbacks').select('raises_count').eq('id', postId).single();
       const currentCount = post?.raises_count ?? 0;
 
-      return supabase
+      const updateResult = await supabase
         .from('feedbacks')
         .update({ raises_count: Math.max(0, currentCount - 1) })
         .eq('id', postId);
+
+      if (updateResult.error) return updateResult;
+
+      const exactCount = await fetchExactRaiseCount(postId);
+      return {
+        ...updateResult,
+        data: { ...(updateResult.data ?? {}), raises_count: exactCount ?? Math.max(0, currentCount - 1) },
+      };
     }
     return res;
   } catch (err) {
@@ -117,8 +223,50 @@ export const unraisePost = async (postId, passedUserId = null) => {
   }
 };
 export const reactPost     = (postId, emoji) => rpc('react_post', { p_post_id: postId, p_emoji: emoji });
-export const bookmarkPost  = (postId) => rpc('bookmark_post',  { p_post_id: postId });
-export const unbookmarkPost= (postId) => rpc('unbookmark_post',{ p_post_id: postId });
+export const bookmarkPost  = async (postId) => {
+  if (!supabase || !postId) return { data: { localOnly: true }, error: null };
+
+  const rpcResult = await rpc('bookmark_post', { p_post_id: postId });
+  if (!rpcResult.error) return rpcResult;
+  if (!isMissingRpcFunction(rpcResult.error, 'bookmark_post')) return rpcResult;
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { data: { localOnly: true }, error: null };
+
+  const fallbackResult = await tryInsertBookmark(postId, userId);
+  if (!fallbackResult.error) return { ...fallbackResult, data: { ...(fallbackResult.data ?? {}), fallback: 'table' } };
+
+  const fallbackMessage = String(fallbackResult.error?.message ?? '').toLowerCase();
+  const unsupported = fallbackMessage.includes('relation')
+    || fallbackMessage.includes('does not exist')
+    || fallbackMessage.includes('permission denied')
+    || fallbackMessage.includes('row-level security');
+  if (unsupported) return { data: { localOnly: true, fallback: 'local' }, error: null };
+
+  return fallbackResult;
+};
+export const unbookmarkPost= async (postId) => {
+  if (!supabase || !postId) return { data: { localOnly: true }, error: null };
+
+  const rpcResult = await rpc('unbookmark_post', { p_post_id: postId });
+  if (!rpcResult.error) return rpcResult;
+  if (!isMissingRpcFunction(rpcResult.error, 'unbookmark_post')) return rpcResult;
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { data: { localOnly: true }, error: null };
+
+  const fallbackResult = await tryDeleteBookmark(postId, userId);
+  if (!fallbackResult.error) return { ...fallbackResult, data: { ...(fallbackResult.data ?? {}), fallback: 'table' } };
+
+  const fallbackMessage = String(fallbackResult.error?.message ?? '').toLowerCase();
+  const unsupported = fallbackMessage.includes('relation')
+    || fallbackMessage.includes('does not exist')
+    || fallbackMessage.includes('permission denied')
+    || fallbackMessage.includes('row-level security');
+  if (unsupported) return { data: { localOnly: true, fallback: 'local' }, error: null };
+
+  return fallbackResult;
+};
 export const followUser = async (userId) => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -233,7 +381,7 @@ export async function createFeedbackPost({ userId, content, type, service, locat
     const message = result.error.message?.toLowerCase() ?? '';
     // If it's a legacy schema error, try the fallback with more column variations
     if (message.includes('author_id') || message.includes('category') || message.includes('caption') || message.includes('incident_location')) {
-      return await supabase
+      const fallbackResult = await supabase
         .from('feedbacks')
         .insert({
           user_id: userId || null,
@@ -246,6 +394,8 @@ export async function createFeedbackPost({ userId, content, type, service, locat
         })
         .select('id, feedback_no')
         .single();
+
+      return fallbackResult;
     }
 
     return result;

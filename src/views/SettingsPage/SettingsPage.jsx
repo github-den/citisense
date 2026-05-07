@@ -154,7 +154,7 @@ export default function SettingsPage({ setPage, embedded = false }) {
 
   return (
     <div className={embedded ? styles.embeddedContainer : styles.page}>
-      <div className={styles.headerBlock}>
+      <div className={[styles.headerBlock, embedded ? styles.embeddedHeaderBlock : ''].filter(Boolean).join(' ')}>
         <div className={styles.titleRow}>
           <div className={styles.iconWrap}>
             <GearSix size={20} weight="fill" />
@@ -163,7 +163,7 @@ export default function SettingsPage({ setPage, embedded = false }) {
         </div>
       </div>
 
-      <div className={styles.content}>
+      <div className={[styles.content, embedded ? styles.embeddedContent : ''].filter(Boolean).join(' ')}>
         <div className={styles.group}>
           <div className={styles.row}>
             <div className={styles.rowMain}>
@@ -207,7 +207,10 @@ export default function SettingsPage({ setPage, embedded = false }) {
         {emailNotice && <div className={styles.notice}>{emailNotice}</div>}
       </div>
 
-      <div className={styles.headerBlock} style={{ marginTop: '24px' }}>
+      <div
+        className={[styles.headerBlock, embedded ? styles.embeddedHeaderBlock : ''].filter(Boolean).join(' ')}
+        style={{ marginTop: '24px' }}
+      >
         <div className={styles.titleRow}>
           <div className={styles.iconWrap}>
             <Info size={20} weight="fill" />
@@ -216,7 +219,7 @@ export default function SettingsPage({ setPage, embedded = false }) {
         </div>
       </div>
 
-      <div className={styles.content}>
+      <div className={[styles.content, embedded ? styles.embeddedContent : ''].filter(Boolean).join(' ')}>
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Frequently Asked Questions</h2>
           <div className={styles.accordionList}>

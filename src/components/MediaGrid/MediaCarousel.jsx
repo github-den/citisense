@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { CaretLeft, CaretRight, Trash, Play } from '@phosphor-icons/react';
 import { normalizeMediaItems } from '@core/utils/mediaGrid.js';
+import MediaLightbox from './MediaLightbox.jsx';
 import styles from './MediaGrid.module.css';
 
 export default function MediaCarousel({
@@ -14,6 +15,7 @@ export default function MediaCarousel({
 }) {
   const mediaItems = useMemo(() => normalizeMediaItems(items, maxItems), [items, maxItems]);
   const [activeIndex, setActiveIndex] = useState(initialState?.index ?? 0);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isIntersecting, setIsIntersecting] = useState(false);
   const videoRef = useRef(null);
@@ -66,30 +68,10 @@ export default function MediaCarousel({
     setActiveIndex((current) => (current + 1) % total);
   }
 
-  function handleKeyDown(event) {
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      goPrevious(event);
-    }
-
-    if (event.key === 'ArrowRight') {
-      event.preventDefault();
-      goNext(event);
-    }
-  }
-
   function handleFullscreen(event) {
     event?.stopPropagation?.();
-    const element = activeItem.type === 'video' ? videoRef.current : imageRef.current;
-    if (!element) return;
-
-    if (element.requestFullscreen) {
-      element.requestFullscreen();
-    } else if (element.webkitRequestFullscreen) {
-      element.webkitRequestFullscreen();
-    } else if (element.msRequestFullscreen) {
-      element.msRequestFullscreen();
-    }
+    setLightboxIndex(activeIndex);
+    onOpen?.({ index: activeIndex, item: activeItem });
   }
 
   return (
@@ -98,8 +80,6 @@ export default function MediaCarousel({
       className={[styles.carousel, className].filter(Boolean).join(' ')}
       role="group"
       aria-label={`Attached media (${total} items)`}
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
     >
       <div className={styles.carouselContent}>
         <div 
@@ -178,6 +158,18 @@ export default function MediaCarousel({
             ))}
           </div>
         </>
+      ) : null}
+
+      {lightboxIndex != null ? (
+        <MediaLightbox
+          items={mediaItems}
+          index={lightboxIndex}
+          onSelect={(nextIndex) => {
+            setActiveIndex(nextIndex);
+            setLightboxIndex(nextIndex);
+          }}
+          onClose={() => setLightboxIndex(null)}
+        />
       ) : null}
     </div>
   );

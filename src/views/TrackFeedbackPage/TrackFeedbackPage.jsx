@@ -171,14 +171,13 @@ export default function TrackFeedbackPage({ onReady }) {
           )}
 
           {!loading && filteredPosts.length === 0 && (
-            <div className={styles.emptyState}>
-              <GpsFix size={48} weight="duotone" />
-              <h3>
+            <div className={styles.zeroState}>
+              <h3 className={styles.zeroTitle}>
                 {activeStatus === 'under_review'
                   ? 'No feedbacks under review'
                   : `No ${STATUS_LABEL[activeStatus] ?? activeStatus} feedbacks`}
               </h3>
-              <p>Try selecting another status or check back later.</p>
+              <p className={styles.zeroText}>Try selecting another status or check back later.</p>
             </div>
           )}
 

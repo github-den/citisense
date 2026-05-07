@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@core/lib/supabase.js';
+import { useMemo } from 'react';
+import { useFeedboxes } from './useFeedboxes.js';
 
-function score(box) {
+function rankingScore(box) {
   const raises = Number(box?.raises_count ?? 0);
-  const shares = Number(box?.shares_count ?? 0);
-  return raises + shares;
+  const feedback = Number(box?.feedback_count ?? 0);
+  const reacts = Number(box?.reacts_count ?? 0);
+  const discuss = Number(box?.discuss_count ?? 0);
+  return feedback + raises + reacts + discuss;
 }
 
 function pickRandom(items, count) {
@@ -17,32 +19,14 @@ function pickRandom(items, count) {
 }
 
 export function useTrendingFeedboxes({ top = 10, pick = 4 } = {}) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    if (!supabase) { setLoading(false); return; }
-
-    supabase
-      .from('feedboxes')
-      .select('id, topic, raises_count, shares_count, feedback_count, service, description')
-      .then(({ data, error }) => {
-        if (!mounted) return;
-        if (error) setRows([]);
-        else setRows(data ?? []);
-        setLoading(false);
-      });
-
-    return () => { mounted = false; };
-  }, [top]);
+  const { feedboxes, loading } = useFeedboxes();
 
   const topTen = useMemo(() => {
-    return [...rows]
-      .filter((row) => score(row) >= 3)
-      .sort((a, b) => score(b) - score(a))
+    return [...(feedboxes ?? [])]
+      .filter((row) => Number(row?.feedback_count ?? 0) > 0)
+      .sort((a, b) => rankingScore(b) - rankingScore(a))
       .slice(0, top);
-  }, [rows, top]);
+  }, [feedboxes, top]);
 
   const picked = useMemo(() => {
     return pickRandom(topTen, pick);

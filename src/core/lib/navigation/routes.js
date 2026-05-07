@@ -17,7 +17,7 @@ export const routes = {
   profileActivityLog: '/profile/activity-log',
   editProfile: '/profile/edit',
   notifications: '/notifications',
-  profileForLater: '/profile/for-later',
+  profileSaved: '/profile/saved',
   profileDrafts: '/profile/drafts',
   profileSettings: '/profile/settings',
   profileSupport: '/profile/support',
@@ -36,10 +36,6 @@ export function slugifySegment(value) {
 
 export function discussRoute(id) {
   return `/post/${id}`;
-}
-
-export function feedboxDetailRoute(slug) {
-  return `/feedbox/${slugifySegment(slug)}`;
 }
 
 export function yourCityTabRoute(tab) {

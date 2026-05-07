@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 20000;
   display: grid;
   grid-template-rows: 1fr auto;
   justify-items: center;
@@ -128,18 +128,6 @@
   object-fit: cover;
 }
 
-@media (max-width: 760px) {
-  .overlay {
-    padding: 16px;
-  }
-
-  .stage {
-    width: min(calc(100vw - 32px), calc(100vh - 150px));
-  }
-
-  .footer {
-    width: calc(100vw - 32px);
-  }
 .videoStageWrap {
   position: relative;
   width: 100%;
@@ -188,13 +176,27 @@
 .thumbnailPlayIcon {
   position: absolute;
   inset: 0;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.2);
   color: #fff;
-  z-index: 2;
 }
+
+@media (max-width: 760px) {
+  .overlay {
+    padding: 16px;
+  }
+
+  .stage {
+    width: min(calc(100vw - 32px), calc(100vh - 150px));
+  }
+
+  .footer {
+    width: calc(100vw - 32px);
+  }
+
   .thumbnailButton {
     width: 52px;
     height: 52px;

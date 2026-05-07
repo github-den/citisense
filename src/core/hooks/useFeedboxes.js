@@ -1,28 +1,37 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@core/lib/supabase.js';
-import { feedboxFallback } from '@/data/feedboxFallback.js';
+import { useEffect, useState } from 'react';
 
 export function useFeedboxes() {
   const [feedboxes, setFeedboxes] = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [error,     setError]     = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!supabase) {
-      setFeedboxes(feedboxFallback);
-      setLoading(false);
-      return;
-    }
+    let mounted = true;
 
-    supabase
-      .from('feedboxes')
-      .select('id, topic, feedback_count, raises_count, shares_count, avg_satisfaction, is_hot, service, description, location, location_precise, created_at')
-      .order('feedback_count', { ascending: false })
-      .then(({ data, error: err }) => {
-        if (err) setError(err);
-        else setFeedboxes((data?.length ?? 0) > 0 ? data : feedboxFallback);
-        setLoading(false);
+    fetch('/api/feedbox-topics', { cache: 'no-store' })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.error ?? 'Unable to load feedboxes.');
+        }
+        return payload.feedboxes ?? [];
+      })
+      .then((data) => {
+        if (!mounted) return;
+        setFeedboxes(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err);
+        setFeedboxes([]);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
       });
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return { feedboxes, loading, error };

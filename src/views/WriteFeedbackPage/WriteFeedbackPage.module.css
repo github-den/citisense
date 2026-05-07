@@ -1419,3 +1419,130 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+.draftModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.draftModalCard {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px solid var(--ui-border);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.18);
+}
+
+.draftModalTitle {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.draftModalBody {
+  margin: -4px 0 0;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
+.draftModalRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.draftNameInput {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--ui-border);
+  background: #ffffff;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 140ms var(--ease-out), box-shadow 140ms var(--ease-out);
+}
+
+.draftNameInput:focus {
+  border-color: var(--ui-accent);
+  box-shadow: var(--ring);
+}
+
+.draftSaveButton {
+  min-width: 82px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    background-color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
+}
+
+.draftSaveButtonReady {
+  border-color: var(--ui-accent);
+  background: var(--ui-accent);
+  color: #ffffff;
+}
+
+.draftSaveButton:disabled {
+  cursor: not-allowed;
+}
+
+.modalActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.modalGhostButton,
+.modalDangerButton,
+.modalPrimaryButton {
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  transition:
+    background-color 140ms var(--ease-out),
+    border-color 140ms var(--ease-out),
+    color 140ms var(--ease-out);
+}
+
+.modalGhostButton {
+  border: 1px solid var(--ui-border);
+  background: #ffffff;
+  color: var(--text-2);
+}
+
+.modalDangerButton {
+  border: 1px solid rgba(220, 38, 38, 0.24);
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.modalPrimaryButton {
+  border: 1px solid var(--ui-accent);
+  background: var(--ui-accent);
+  color: #ffffff;
+}

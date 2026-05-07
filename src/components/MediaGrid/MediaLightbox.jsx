@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Play } from '@phosphor-icons/react';
 import { inferMediaType, normalizeMediaItems } from '@core/utils/mediaGrid.js';
 import { lockPageScroll } from '@core/utils/lockPageScroll.js';
@@ -18,11 +19,16 @@ export default function MediaLightbox({
   const mediaItems = useMemo(() => normalizeMediaItems(items), [items]);
   const activeIndex = Math.min(Math.max(index, 0), Math.max(mediaItems.length - 1, 0));
   const activeItem = mediaItems[activeIndex];
+  const [mounted, setMounted] = useState(false);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [origin, setOrigin] = useState('50% 50%');
   const [isPlaying, setIsPlaying] = useState(false); // Always start paused
   const overlayRef = useRef(null);
   const videoRef = useRef(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function handleKeyDown(event) {
@@ -78,7 +84,7 @@ export default function MediaLightbox({
     }
   }, [isPlaying, activeItem]);
 
-  if (!activeItem) return null;
+  if (!activeItem || !mounted) return null;
 
   function handleClose() {
     // Return to start and paused when closing
@@ -111,7 +117,7 @@ export default function MediaLightbox({
     onSelect?.(nextIndex);
   }
 
-  return (
+  return createPortal(
     <div ref={overlayRef} className={styles.overlay} onMouseDown={handleClose} role="dialog" aria-modal="true" aria-label="Media preview" tabIndex={-1}>
       <button type="button" className={styles.closeBtn} onClick={handleClose} aria-label="Close preview">
         <X size={22} weight="bold" />
@@ -187,6 +193,7 @@ export default function MediaLightbox({
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

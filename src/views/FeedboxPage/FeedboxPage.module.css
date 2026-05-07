@@ -395,6 +395,64 @@
   font-weight: 800;
 }
 
+.feedList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.resultsHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 0 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.resultsKicker {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.resultsTitle {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 950;
+  letter-spacing: -0.5px;
+}
+
+.resultsMeta {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.resetButton {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.14s var(--ease-out), border-color 0.14s var(--ease-out);
+}
+
+.resetButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(24, 71, 240, 0.28);
+}
+
 /* SKELETON */
 .skeletonCard {
   height: 240px;
@@ -444,4 +502,8 @@
 
 @media (max-width: 640px) {
   .grid { grid-template-columns: 1fr; }
+  .resultsHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }

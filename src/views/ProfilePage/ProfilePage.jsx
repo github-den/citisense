@@ -8,7 +8,6 @@ import {
   RowsPlusTop,
   GearSix,
   SignOut,
-  UserCircle,
   WarningCircle,
   UserPlus,
   Prohibit,
@@ -21,7 +20,7 @@ import PostPromptCardSkeleton from '../../components/PostPromptCard/PostPromptCa
 import Button from '../../components/ui/Button.jsx';
 import Tooltip from '../../components/ui/Tooltip.jsx';
 import DraftsPage from '../DraftsPage/DraftsPage.jsx';
-import ForLaterPage from '../ForLaterPage/ForLaterPage.jsx';
+import SavedPage from '../SavedPage/SavedPage.jsx';
 import ActivityLogPage from '../ActivityLogPage/ActivityLogPage.jsx';
 import EditProfilePage from '../EditProfilePage/EditProfilePage.jsx';
 import SettingsPage from '../SettingsPage/SettingsPage.jsx';
@@ -37,7 +36,7 @@ const PROFILE_TABS = [
   { key: 'timeline', label: 'Timeline', icon: RowsPlusTop },
   { key: 'activity-log', label: 'Activity history', icon: ClockCountdown },
   { key: 'drafts', label: 'Drafts', icon: FileDashed },
-  { key: 'for-later', label: 'Saved', icon: BookmarkSimple },
+  { key: 'saved', label: 'Saved', icon: BookmarkSimple },
   { key: 'settings', label: 'Settings and support', icon: GearSix },
 ];
 
@@ -317,10 +316,9 @@ export default function ProfilePage({ setPage, tab: propTab }) {
                 )}
 
                 {!postsLoading && !postsError && posts.length === 0 ? (
-                  <div className={styles.emptyState}>
-                    <UserCircle size={44} weight="duotone" color="var(--text-3)" />
-                    <p>{isOwnProfile ? "No activity in this section yet." : "No public activity yet."}</p>
-                    <span>{isOwnProfile ? "Use the prompt above to submit your first feedback." : "This citizen hasn't shared any civic feedback yet."}</span>
+                  <div className={styles.zeroState}>
+                    <p className={styles.zeroTitle}>{isOwnProfile ? "No activity in this section yet." : "No public activity yet."}</p>
+                    <span className={styles.zeroText}>{isOwnProfile ? "Use the prompt above to submit your first feedback." : "This citizen hasn't shared any civic feedback yet."}</span>
                   </div>
                 ) : null}
 
@@ -351,8 +349,8 @@ export default function ProfilePage({ setPage, tab: propTab }) {
           <DraftsPage setPage={setPage} embedded />
         )}
 
-        {!profileLoading && activeTab === 'for-later' && isOwnProfile && (
-          <ForLaterPage setPage={setPage} embedded />
+        {!profileLoading && activeTab === 'saved' && isOwnProfile && (
+          <SavedPage setPage={setPage} embedded />
         )}
       </main>
     </div>

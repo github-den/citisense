@@ -8,7 +8,7 @@ import RightAside from '../RightAside/RightAside.jsx';
 import TopHeader from '../TopHeader/TopHeader.jsx';
 import DiscussionModal from '../DiscussionModal/DiscussionModal.jsx';
 import { useAuth } from '@core/context/AuthContext.jsx';
-import { discussRoute, feedboxDetailRoute, routes } from '@core/lib/navigation/routes.js';
+import { routes } from '@core/lib/navigation/routes.js';
 import styles from '../../App.module.css';
 
 function buildSearchHref(query) {
@@ -108,8 +108,8 @@ export default function CitizenLayoutShell({
       case 'notifications':
         router.push(routes.notifications);
         break;
-      case 'forlater':
-        router.push(routes.profileForLater);
+      case 'saved':
+        router.push(routes.profileSaved);
         break;
       case 'drafts':
         router.push(routes.profileDrafts);
@@ -136,14 +136,6 @@ export default function CitizenLayoutShell({
     openDiscuss: (post) => {
       if (!post?.id) return;
       setDiscussionPost(post);
-    },
-    openFeedbox: (feedbox) => {
-      if (feedbox?.slug || feedbox?.topic) {
-        router.push(feedboxDetailRoute(feedbox.slug ?? feedbox.topic));
-        return;
-      }
-
-      router.push(routes.feedbox);
     },
     openSearch: (query) => {
       searchQueryRef.current = String(query ?? '');

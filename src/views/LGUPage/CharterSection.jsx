@@ -46,7 +46,6 @@ export default function CharterTab({
                   options={CHARTER_FILTER_OPTIONS}
                   onChange={setCharterFilter}
                   icon={HandHeart}
-                  placeholder="Filter category"
                   variant="default"
                 />
               </div>

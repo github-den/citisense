@@ -62,7 +62,6 @@ export function mapPost(row) {
     type: normalizeType(row),
     feedbackNo: normalizeFeedbackNo(row),
     service: row.service ?? row.subcategory ?? row.category,
-    feedbox: row.feedboxes?.topic ?? row.feedbox_topic ?? null,
     imageUrl: row.image_url ?? null,
     images: Array.isArray(row.image_urls) ? row.image_urls : (Array.isArray(row.images) ? row.images : []),
     evidenceNote: row.evidence_note ?? '',

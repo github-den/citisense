@@ -428,6 +428,12 @@ const FeedCard = forwardRef(({
       if (result?.error) {
         setRaised(!next);
         setRaiseCount(before);
+        return;
+      }
+
+      const exactCount = result?.data?.raises_count;
+      if (typeof exactCount === 'number') {
+        setRaiseCount(exactCount);
       }
     }, 'Sign in to raise this feedback.');
   }
@@ -453,7 +459,10 @@ const FeedCard = forwardRef(({
       if (result?.error) {
         setBookmarked(!next);
         setBookmarkedPost(post.id, !next);
+        return;
       }
+
+      showToast(next ? 'Feedback saved.' : 'Feedback unsaved.', 'success');
     }, 'Sign in to save feedback for later.');
   }
 

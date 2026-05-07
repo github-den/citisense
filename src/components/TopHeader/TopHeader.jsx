@@ -75,7 +75,7 @@ export default function TopHeader({ page, secondHeader, setPage, setSearchQuery 
   const menuItems = useMemo(() => ([
     { key: 'profile', label: 'My profile', Icon: UserCircle, onClick: () => setPage('profile') },
     { key: 'drafts', label: 'Drafts', Icon: NotePencil, onClick: () => setPage('drafts') },
-    { key: 'forlater', label: 'Saved', Icon: BookmarkSimple, onClick: () => setPage('forlater') },
+    { key: 'saved', label: 'Saved', Icon: BookmarkSimple, onClick: () => setPage('saved') },
     { key: 'settings', label: 'Settings and support', Icon: GearSix, onClick: () => setPage('settings') },
     { key: 'divider-1', type: 'divider' },
     { key: 'logout', label: 'Logout', Icon: SignOut, onClick: handleSignOut },
@@ -116,9 +116,9 @@ export default function TopHeader({ page, secondHeader, setPage, setSearchQuery 
 
             <button
               type="button"
-              className={[styles.navItem, page === 'feedbox' || page === 'insidebox' ? styles.navItemActive : ''].filter(Boolean).join(' ')}
+              className={[styles.navItem, page === 'feedbox' ? styles.navItemActive : ''].filter(Boolean).join(' ')}
               onClick={() => setPage('feedbox')}
-              aria-current={page === 'feedbox' || page === 'insidebox' ? 'page' : undefined}
+              aria-current={page === 'feedbox' ? 'page' : undefined}
             >
               Feedbox
             </button>

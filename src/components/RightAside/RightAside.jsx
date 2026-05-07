@@ -5,7 +5,6 @@ import SearchAside from './SearchAside.jsx';
 import TrackAside from './TrackAside.jsx';
 import DiscussAside from './DiscussAside.jsx';
 import SetupAside from './SetupAside.jsx';
-import InsideboxAside from './InsideboxAside.jsx';
 import CitiMoodAside from './CitiMoodAside.jsx';
 import NotificationsAside from './NotificationsAside.jsx';
 import DefaultAside from './DefaultAside.jsx';
@@ -34,9 +33,6 @@ export default function RightAside(props) {
       break;
     case 'setup':
       content = <SetupAside {...props} />;
-      break;
-    case 'insidebox':
-      content = <InsideboxAside {...props} />;
       break;
     case 'citimood':
       content = <CitiMoodAside {...props} />;

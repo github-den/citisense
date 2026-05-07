@@ -146,6 +146,33 @@
   line-height: 1.55;
 }
 
+.zeroState {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 140px;
+  padding: 32px;
+  border-radius: 22px;
+  border: 1px dashed rgba(191, 219, 254, 0.92);
+  background: rgba(248, 251, 255, 0.84);
+  text-align: center;
+}
+
+.zeroTitle {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.zeroText {
+  max-width: 360px;
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
 .sectionTitle {
   margin: 0 0 14px;
   color: var(--text);

@@ -6,23 +6,21 @@ import styles from '../LGUPage/LGUPage.module.css';
 import CharterSection from '../LGUPage/CharterSection.jsx';
 import CharterStepsModal from '../LGUPage/CharterStepsModal.jsx';
 
-const CHARTER_FILTER_OPTIONS = [{ value: 'all', label: 'All categories' }].concat(
-  charterCategories
-    .map((category) => ({ value: category.key, label: category.name }))
-    .sort((a, b) => a.label.localeCompare(b.label)),
-);
+const CHARTER_FILTER_OPTIONS = charterCategories
+  .map((category) => ({ value: category.key, label: category.name }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
+const DEFAULT_CHARTER_FILTER = CHARTER_FILTER_OPTIONS[0]?.value ?? '';
 
 export default function CharterPage() {
-  const [charterFilter, setCharterFilter] = useState('all');
+  const [charterFilter, setCharterFilter] = useState(DEFAULT_CHARTER_FILTER);
   const [charterQuery, setCharterQuery] = useState('');
   const [activeCharterStep, setActiveCharterStep] = useState(null);
 
   const charterRef = useRef(null);
 
   const charterItems = useMemo(() => {
-    const source = charterFilter === 'all'
-      ? charterCategories
-      : charterCategories.filter((category) => category.key === charterFilter);
+    const source = charterCategories.filter((category) => category.key === charterFilter);
 
     const normalizedQuery = charterQuery.trim().toLowerCase();
 

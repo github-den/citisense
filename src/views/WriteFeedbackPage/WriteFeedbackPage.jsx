@@ -10,6 +10,11 @@ export default function WriteFeedbackPage() {
       return;
     }
 
+    if (nextPage === 'back') {
+      router.back();
+      return;
+    }
+
     router.back();
   }}
   mode="create"

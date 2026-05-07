@@ -16,7 +16,7 @@ const GROUP_2 = [
 const GROUP_3 = [
   { key: 'profile', icon: 'UserCircle', label: 'Profile' },
   { key: 'notifications', icon: 'Bell', label: 'Notifications' },
-  { key: 'forlater', icon: 'BookmarkSimple', label: 'Saved' },
+  { key: 'saved', icon: 'BookmarkSimple', label: 'Saved' },
   { key: 'drafts', icon: 'NotePencil', label: 'Drafts' },
 ];
 

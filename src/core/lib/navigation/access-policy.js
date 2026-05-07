@@ -14,7 +14,6 @@ const GUEST_ALLOWED_PATTERNS = [
   /^\/feed\/(?:for-you|forYou)$/,
   /^\/post\/[^/]+$/,
   /^\/discuss\/[^/]+$/,
-  /^\/feedbox\/[^/]+$/,
   /^\/profile\/[^/]+$/,
 ];
 

@@ -82,7 +82,7 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
                 <div className={styles.tTopic}>{item.topic}</div>
                 <div className={styles.tMeta}>
                   <TrendUp size={13} weight="bold" />
-                  {item.raises_count ?? 0} raises, {item.shares_count ?? 0} shares
+                  {item.raises_count ?? 0} raises, {item.feedback_count ?? 0} feedback entries
                 </div>
               </button>
             ))
