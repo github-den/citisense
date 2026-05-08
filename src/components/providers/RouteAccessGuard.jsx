@@ -14,8 +14,12 @@ export default function RouteAccessGuard() {
     if (loading) return;
 
     const normalizedPath = pathname && pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const hash = typeof window !== 'undefined' ? window.location.hash : '';
     const hasPendingEmailSignup = typeof window !== 'undefined'
       && !!window.sessionStorage.getItem('citisense:pending_signup_email');
+    const hasPendingGoogleAuth = typeof window !== 'undefined'
+      && !!window.sessionStorage.getItem('citisense:pending_google_auth');
     const emailSignupVerified = typeof window !== 'undefined'
       && window.sessionStorage.getItem('citisense:signup_email_verified') === 'true';
     const emailSignupPasswordCreated = typeof window !== 'undefined'
@@ -23,6 +27,16 @@ export default function RouteAccessGuard() {
     const isEmailSignupRoute = normalizedPath === '/create-password' || normalizedPath === '/agreement';
     const isEmailSignupFlow = hasPendingEmailSignup
       && (!emailSignupPasswordCreated || isEmailSignupRoute);
+    const hasOAuthCallbackParams = Boolean(
+      searchParams?.get('code')
+      || searchParams?.get('error')
+      || searchParams?.get('error_description')
+      || hash.includes('access_token=')
+      || hash.includes('error=')
+    );
+    const isGoogleAuthCallbackRoute = normalizedPath === '/auth/callback'
+      || (normalizedPath === '/' && hasOAuthCallbackParams);
+    const isGoogleAuthHandoff = hasPendingGoogleAuth && isGoogleAuthCallbackRoute;
 
     if (session && hasPendingEmailSignup && emailSignupVerified && !emailSignupPasswordCreated && normalizedPath !== '/create-password') {
       router.replace('/create-password');
@@ -30,6 +44,7 @@ export default function RouteAccessGuard() {
     }
 
     if (needsSetup && session && normalizedPath !== '/setup' && !(normalizedPath === '/admin' || normalizedPath.startsWith('/admin/'))) {
+      if (isGoogleAuthHandoff) return;
       if (isEmailSignupFlow && (modalOpen || isEmailSignupRoute)) return;
       router.replace('/setup');
       return;
