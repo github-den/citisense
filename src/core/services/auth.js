@@ -1,11 +1,14 @@
 import { supabase } from '@core/lib/supabase.js';
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 const AUTH_METHOD_EMAIL = 'email';
 const AUTH_METHOD_GOOGLE = 'google';
 const PENDING_AUTH_METHOD_KEY = 'citisense:pending_auth_method';
 const PENDING_AUTH_STARTED_AT_KEY = 'citisense:pending_auth_started_at';
 const PENDING_AUTH_MAX_AGE_MS = 10 * 60 * 1000;
+const PENDING_GOOGLE_AUTH_KEY = 'citisense:pending_google_auth';
+const GOOGLE_AUTH_INTENT_LOGIN = 'login';
+const GOOGLE_AUTH_INTENT_SIGNUP = 'signup';
+const PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 
 const AVATAR_ASSETS = {
   avatar_1: '/avatars/avatar_1.png',
@@ -55,6 +58,104 @@ function rememberPendingAuthMethod(method) {
   if (typeof window === 'undefined') return;
   window.sessionStorage.setItem(PENDING_AUTH_METHOD_KEY, method);
   window.sessionStorage.setItem(PENDING_AUTH_STARTED_AT_KEY, String(Date.now()));
+}
+
+function getAppBaseUrl() {
+  if (PUBLIC_SITE_URL) return PUBLIC_SITE_URL.replace(/\/+$/, '');
+  if (typeof window === 'undefined') return '';
+  return window.location.origin;
+}
+
+function getOAuthCallbackUrl() {
+  const baseUrl = getAppBaseUrl();
+  return baseUrl ? `${baseUrl}/auth/callback` : '/auth/callback';
+}
+
+async function requestAccountGate(payload) {
+  const response = await fetch('/api/auth/account-gate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(result.error ?? 'Unable to verify account registration.');
+  }
+
+  return result;
+}
+
+export function getPendingGoogleAuthState() {
+  if (typeof window === 'undefined') return null;
+
+  const raw = window.sessionStorage.getItem(PENDING_GOOGLE_AUTH_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed?.startedAt || Date.now() - parsed.startedAt > PENDING_AUTH_MAX_AGE_MS) {
+      window.sessionStorage.removeItem(PENDING_GOOGLE_AUTH_KEY);
+      return null;
+    }
+
+    return {
+      intent: parsed.intent === GOOGLE_AUTH_INTENT_SIGNUP ? GOOGLE_AUTH_INTENT_SIGNUP : GOOGLE_AUTH_INTENT_LOGIN,
+      acceptedTerms: parsed.acceptedTerms === true,
+    };
+  } catch {
+    window.sessionStorage.removeItem(PENDING_GOOGLE_AUTH_KEY);
+    return null;
+  }
+}
+
+export function clearPendingGoogleAuthState() {
+  if (typeof window === 'undefined') return;
+  window.sessionStorage.removeItem(PENDING_GOOGLE_AUTH_KEY);
+}
+
+export function clearPendingGoogleAuthFlow() {
+  clearPendingAuthMethod();
+  clearPendingGoogleAuthState();
+}
+
+export async function ensureEmailLoginAllowed(email) {
+  const result = await requestAccountGate({ mode: 'email-login', email });
+  if (result.allowed) return result;
+
+  const error = new Error(result.message ?? 'Unable to log in.');
+  error.authTab = result.tab ?? 'login';
+  throw error;
+}
+
+export async function ensureEmailSignupAllowed(email) {
+  const result = await requestAccountGate({ mode: 'email-signup', email });
+  if (result.allowed) return result;
+
+  const error = new Error(result.message ?? 'Unable to sign up.');
+  error.authTab = result.tab ?? 'login';
+  throw error;
+}
+
+export async function validateGoogleCallbackAccount({ email, currentUserId, intent }) {
+  return requestAccountGate({
+    mode: 'google-callback',
+    email,
+    currentUserId,
+    intent,
+  });
+}
+
+function rememberPendingGoogleAuthState({ intent, acceptedTerms }) {
+  if (typeof window === 'undefined') return;
+
+  window.sessionStorage.setItem(PENDING_GOOGLE_AUTH_KEY, JSON.stringify({
+    intent,
+    acceptedTerms: acceptedTerms === true,
+    startedAt: Date.now(),
+  }));
 }
 
 async function syncAuthMethodMetadata(session) {
@@ -142,6 +243,7 @@ export async function signIn(email, password) {
 
 export async function signUp(email, password) {
   if (!supabase) noClient();
+  await ensureEmailSignupAllowed(email);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -164,6 +266,7 @@ export async function signUp(email, password) {
 
 export async function sendSignupOtp(email) {
   if (!supabase) noClient();
+  await ensureEmailSignupAllowed(email);
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -254,25 +357,27 @@ export async function updateEmail(email) {
 
 export async function resetPassword(email) {
   if (!supabase) noClient();
+  const baseUrl = getAppBaseUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${window.location.origin}`,
+    redirectTo: baseUrl || '/',
   });
   if (error) throw error;
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle({ intent = GOOGLE_AUTH_INTENT_LOGIN, acceptedTerms = false } = {}) {
   if (!supabase) noClient();
-  if (!GOOGLE_CLIENT_ID) {
-    throw new Error('Google login is not configured. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your .env file and configure the same client in Supabase Auth.');
+  if (intent === GOOGLE_AUTH_INTENT_SIGNUP && !acceptedTerms) {
+    throw new Error('Please accept the User Agreement and Privacy Policy.');
   }
 
   rememberPendingAuthMethod(AUTH_METHOD_GOOGLE);
+  rememberPendingGoogleAuthState({ intent, acceptedTerms });
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${window.location.origin}/setup` },
+    options: { redirectTo: getOAuthCallbackUrl() },
   });
   if (error) {
-    clearPendingAuthMethod();
+    clearPendingGoogleAuthFlow();
     throw error;
   }
 }

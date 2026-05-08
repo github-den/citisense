@@ -47,10 +47,10 @@ export default function AuthModal() {
       setShowPassword(false);
       setLegalView(null);
       setAcceptedTerms(false);
-      setError('');
+      setError(modalMessage ?? '');
       setBusy(false);
     }
-  }, [modalOpen, modalTab]);
+  }, [modalMessage, modalOpen, modalTab]);
 
   useEffect(() => {
     if (!modalOpen) return undefined;
@@ -163,6 +163,25 @@ export default function AuthModal() {
     } catch (err) {
       setError(err.message ?? 'Something went wrong.');
     } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitGoogle() {
+    setError('');
+    if (isCreate && !acceptedTerms) {
+      setError('Please accept the User Agreement and Privacy Policy.');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await handleGoogleSignIn({
+        intent: isCreate ? 'signup' : 'login',
+        acceptedTerms,
+      });
+    } catch (err) {
+      setError(err.message ?? 'Unable to continue with Google.');
       setBusy(false);
     }
   }
@@ -496,20 +515,14 @@ export default function AuthModal() {
           </button>
         </form>
 
-        <button 
-          className={styles.googleBtn} 
-          type="button" 
-          onClick={() => {
-            if (isCreate && !acceptedTerms) {
-              setError('Please accept the User Agreement and Privacy Policy.');
-              return;
-            }
-            handleGoogleSignIn();
-          }}
-          disabled={isCreate && !acceptedTerms}
+        <button
+          className={styles.googleBtn}
+          type="button"
+          onClick={submitGoogle}
+          disabled={busy}
         >
           <GoogleIcon />
-          <span>Continue with Google</span>
+          <span>{busy ? 'Connecting to Google...' : 'Continue with Google'}</span>
         </button>
 
         <div className={styles.divider}><span>or</span></div>

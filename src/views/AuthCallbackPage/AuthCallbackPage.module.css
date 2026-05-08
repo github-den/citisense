@@ -1,0 +1,78 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(24, 71, 240, 0.08), transparent 42%),
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+}
+
+.panel {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--radius-md);
+  background: var(--ui-surface);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.wordmark {
+  margin: 0;
+  color: var(--brand);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: lowercase;
+}
+
+.title {
+  margin: 0;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.copy {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+.error {
+  margin: 0;
+  color: var(--red);
+  background: var(--red-light);
+  border: 1px solid rgba(220, 38, 38, 0.14);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+}
+
+.button {
+  min-width: 180px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: var(--radius-xs);
+  background: var(--ui-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.button:hover {
+  background: var(--ui-accent-strong);
+}

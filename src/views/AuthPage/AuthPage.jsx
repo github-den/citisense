@@ -58,6 +58,27 @@ export default function AuthPage() {
     }
   }
 
+  async function handleGoogleContinue() {
+    setError('');
+    setMessage('');
+    if (tab === 'signup' && !acceptTerms) {
+      setError('Please accept the User Agreement and Privacy Policy.');
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      await handleGoogleSignIn({
+        intent: tab === 'signup' ? 'signup' : 'login',
+        acceptedTerms: acceptTerms,
+      });
+    } catch (err) {
+      setError(err.message ?? 'Unable to continue with Google.');
+      setBusy(false);
+    }
+  }
+
   return (
     <div className={styles.page}>
       <button type="button" className={styles.wordmark} onClick={() => router.push('/')}>
@@ -118,7 +139,7 @@ export default function AuthPage() {
 
           <div className={styles.divider}><span>or</span></div>
 
-          <button type="button" className={styles.google} disabled={busy} onClick={() => handleGoogleSignIn()}>
+          <button type="button" className={styles.google} disabled={busy} onClick={handleGoogleContinue}>
             Continue with Google
           </button>
         </form>

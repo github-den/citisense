@@ -13,6 +13,7 @@ import {
   updateProfile,
   onAuthStateChange,
   enrichSession,
+  ensureEmailLoginAllowed,
 } from '@core/services/auth.js';
 import { isAdminRole, normalizeRole } from '@core/lib/auth/roles.js';
 
@@ -210,15 +211,7 @@ export function AuthProvider({ children }) {
 
       // 1. Hierarchical Existence Check
       if (isEmail) {
-        const { data, error: existenceError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', cleanIdentifier)
-          .maybeSingle();
-
-        if (!data && (!existenceError || existenceError.code !== '42703')) {
-          throw new Error('Email not registered to CitiSense');
-        }
+        await ensureEmailLoginAllowed(cleanIdentifier);
       } else {
         const { data, error: existenceError } = await supabase
           .from('profiles')
@@ -229,6 +222,7 @@ export function AuthProvider({ children }) {
         if (existenceError) throw existenceError;
         if (!data) throw new Error('Username does not exist');
         if (data.email) emailToUse = data.email;
+        await ensureEmailLoginAllowed(emailToUse);
       }
 
       // 2. Password Match Check
@@ -310,13 +304,12 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function handleGoogleSignIn() {
+  async function handleGoogleSignIn(options = {}) {
     window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(options);
       dispatch({ type: 'CLOSE_MODAL' });
     } catch (error) {
-      console.error('Google sign in error:', error);
       window.dispatchEvent(new CustomEvent('citicontrol:stop-loader'));
       throw error;
     }

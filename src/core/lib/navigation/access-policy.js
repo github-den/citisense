@@ -5,6 +5,7 @@ const GUEST_ALLOWED_EXACT = new Set([
   '/',
   '/feed',
   routes.auth,
+  '/auth/callback',
   '/create-password',
   '/agreement',
   '/admin',
