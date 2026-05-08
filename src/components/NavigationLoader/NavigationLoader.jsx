@@ -1,20 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useAuth } from '@core/context/AuthContext.jsx';
 import styles from './NavigationLoader.module.css';
 
 export default function NavigationLoader() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const { loading: authLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <Suspense fallback={null}>
+      <NavigationLoaderInner />
+    </Suspense>
+  );
+}
+
+function NavigationLoaderInner() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { loading: authLoading } = useAuth();
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const triggerLoader = () => setIsNavigating(true);
@@ -50,7 +61,7 @@ export default function NavigationLoader() {
     }
   }, [active]);
 
-  if (!mounted || !active) return null;
+  if (!active) return null;
 
   return (
     <div className={styles.loader} role="status" aria-label="Loading">
