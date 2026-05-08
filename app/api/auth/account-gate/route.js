@@ -110,7 +110,7 @@ function buildEmailSignupDecision(matches) {
   }
 
   if (matches.some(match => match.method === AUTH_METHOD_EMAIL)) {
-    return reject('This email is already registered. Please log in instead.');
+    return reject('This account is already registered. Please log in instead.');
   }
 
   return allow();

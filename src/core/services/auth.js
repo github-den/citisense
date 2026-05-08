@@ -6,6 +6,8 @@ const PENDING_AUTH_METHOD_KEY = 'citisense:pending_auth_method';
 const PENDING_AUTH_STARTED_AT_KEY = 'citisense:pending_auth_started_at';
 const PENDING_AUTH_MAX_AGE_MS = 10 * 60 * 1000;
 const PENDING_GOOGLE_AUTH_KEY = 'citisense:pending_google_auth';
+const AUTH_MODAL_FLASH_MESSAGE_KEY = 'citisense:auth_modal_flash_message';
+const AUTH_MODAL_FLASH_TAB_KEY = 'citisense:auth_modal_flash_tab';
 const GOOGLE_AUTH_INTENT_LOGIN = 'login';
 const GOOGLE_AUTH_INTENT_SIGNUP = 'signup';
 const PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -119,6 +121,25 @@ export function clearPendingGoogleAuthState() {
 export function clearPendingGoogleAuthFlow() {
   clearPendingAuthMethod();
   clearPendingGoogleAuthState();
+}
+
+export function queueAuthModalFlash({ message, tab = 'login' }) {
+  if (typeof window === 'undefined' || !message) return;
+  window.sessionStorage.setItem(AUTH_MODAL_FLASH_MESSAGE_KEY, String(message));
+  window.sessionStorage.setItem(AUTH_MODAL_FLASH_TAB_KEY, String(tab || 'login'));
+}
+
+export function consumeAuthModalFlash() {
+  if (typeof window === 'undefined') return null;
+
+  const message = window.sessionStorage.getItem(AUTH_MODAL_FLASH_MESSAGE_KEY);
+  const tab = window.sessionStorage.getItem(AUTH_MODAL_FLASH_TAB_KEY) ?? 'login';
+  if (!message) return null;
+
+  window.sessionStorage.removeItem(AUTH_MODAL_FLASH_MESSAGE_KEY);
+  window.sessionStorage.removeItem(AUTH_MODAL_FLASH_TAB_KEY);
+
+  return { message, tab };
 }
 
 export async function ensureEmailLoginAllowed(email) {

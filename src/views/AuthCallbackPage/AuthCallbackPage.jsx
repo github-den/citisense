@@ -6,6 +6,7 @@ import LoadingState from '../../components/LoadingState/LoadingState.jsx';
 import { supabase } from '@core/lib/supabase.js';
 import {
   clearPendingGoogleAuthFlow,
+  queueAuthModalFlash,
   getPendingGoogleAuthState,
   getSession,
   markSignupAgreementAccepted,
@@ -86,8 +87,17 @@ export default function AuthCallbackPage() {
         intent: pendingGoogleAuth?.intent === 'signup' ? 'signup' : 'login',
       });
       if (!gateDecision.allowed) {
-        await signOut();
+        try {
+          await signOut();
+        } catch {
+          // The auth record may already be removed during cleanup, but the user still needs the modal feedback.
+        }
+
         clearPendingGoogleAuthFlow();
+        queueAuthModalFlash({
+          tab: gateDecision.tab ?? 'login',
+          message: gateDecision.message ?? 'Unable to continue with Google.',
+        });
         openModal(gateDecision.tab ?? 'login', gateDecision.message ?? 'Unable to continue with Google.');
         router.replace('/');
         return;

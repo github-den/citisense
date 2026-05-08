@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Check, EnvelopeSimple, Eye, EyeSlash, LockKey, X } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@core/context/AuthContext.jsx';
-import { resetPassword, sendSignupOtp } from '@core/services/auth.js';
+import { consumeAuthModalFlash, resetPassword, sendSignupOtp } from '@core/services/auth.js';
 import styles from './AuthModal.module.css';
 
 const OTP_DURATION_SECONDS = 5 * 60;
@@ -20,7 +20,17 @@ function GoogleIcon() {
 
 export default function AuthModal() {
   const router = useRouter();
-  const { modalOpen, modalMessage, modalTab, handleSignIn, handleVerifySignupOtp, handleGoogleSignIn, closeModal, continueAsGuest } = useAuth();
+  const {
+    modalOpen,
+    modalMessage,
+    modalTab,
+    handleSignIn,
+    handleVerifySignupOtp,
+    handleGoogleSignIn,
+    closeModal,
+    continueAsGuest,
+    openModal,
+  } = useAuth();
 
   const [tab, setTab] = useState('login');
   const [view, setView] = useState('main');
@@ -51,6 +61,14 @@ export default function AuthModal() {
       setBusy(false);
     }
   }, [modalMessage, modalOpen, modalTab]);
+
+  useEffect(() => {
+    if (modalOpen) return;
+
+    const flash = consumeAuthModalFlash();
+    if (!flash?.message) return;
+    openModal(flash.tab ?? 'login', flash.message);
+  }, [modalOpen, openModal]);
 
   useEffect(() => {
     if (!modalOpen) return undefined;
