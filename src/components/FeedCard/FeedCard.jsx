@@ -30,6 +30,7 @@ import {
 } from '@core/services/posts.js';
 import { isBookmarkedPost, setBookmarkedPost } from '@core/services/localState.js';
 import { formatCount } from '@core/utils/format.js';
+import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
 import { dedupeMediaItems, getMediaGridModel, inferMediaType } from '@core/utils/mediaGrid.js';
 import { lockPageScroll } from '@core/utils/lockPageScroll.js';
 import Avatar from '../ui/Avatar.jsx';
@@ -191,11 +192,7 @@ function Caption({ content, onOpenDiscuss, isFullView }) {
 
 function formatDetailsLocation(post) {
   const barangay = String(post?.raw?.barangay ?? post?.barangay ?? '').trim();
-  const location = String(post?.location ?? '').trim();
-  const locationWithoutCoords = location
-    .replace(/\s*\(\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*\)\s*/g, '')
-    .replace(/^Pinned at\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?$/i, '')
-    .trim();
+  const locationWithoutCoords = normalizeIncidentLocationLabel(post?.location);
 
   if (locationWithoutCoords) return locationWithoutCoords;
   if (barangay) return `Barangay ${barangay}`;

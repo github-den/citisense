@@ -1,4 +1,6 @@
 import { URDANETA_BARANGAYS } from '../../constants/index.js';
+import { normalizeIncidentLocationLabel } from '../../core/utils/location.js';
+import { formatMoodLabel, getMoodEmoji as getSharedMoodEmoji, summarizeMoodFromPosts } from '../../core/utils/mood.js';
 
 export const URDANETA_CENTER = { latitude: 15.9763, longitude: 120.565, zoom: 12.65 };
 export const URDANETA_MAX_BOUNDS = [
@@ -57,10 +59,10 @@ export const TYPE_COLORS = {
 };
 
 export function normalizeLocation(post) {
-  const barangay = String(post?.raw?.barangay ?? '').trim();
+  const barangay = normalizeIncidentLocationLabel(post?.raw?.barangay);
   if (URDANETA_BARANGAYS.includes(barangay)) return barangay;
 
-  const location = String(post?.location ?? '').trim();
+  const location = normalizeIncidentLocationLabel(post?.location);
   if (!location) return null;
 
   const match = URDANETA_BARANGAYS.find((name) => location.toLowerCase().includes(name.toLowerCase()));
@@ -163,37 +165,29 @@ export function filterPosts(posts, service, location, timeRange = 'all') {
 }
 
 export function deriveFilteredMood(posts, cityMood) {
+  const summary = summarizeMoodFromPosts(posts);
+  if (summary.mood) {
+    return {
+      label: formatMoodLabel(summary.mood),
+      value: Math.round(summary.confidence * 100),
+    };
+  }
+
   if (posts.length === 0) {
     return {
-      label: cityMood?.mood ? String(cityMood.mood).replace(/^\w/, (char) => char.toUpperCase()) : 'No signal',
+      label: cityMood?.mood ? formatMoodLabel(cityMood.mood) : 'No mood data yet',
       value: 0,
     };
   }
 
-  const positive = posts.filter((post) => post.type === 'compliment' || post.status === 'Resolved').length;
-  const caution = posts.filter((post) => post.type === 'suggestion' || post.status === 'Under Review').length;
-  const negative = posts.filter((post) => post.type === 'complaint' || post.status === 'Dismissed' || post.status === 'Invalid').length;
-  const score = (positive * 2 + caution) - (negative * 2);
-
-  if (score >= posts.length) return { label: 'Grateful', value: 86 };
-  if (score >= 0) return { label: 'Satisfied', value: 72 };
-  if (score > -posts.length) return { label: 'Sad', value: 44 };
-  return { label: 'Angry', value: 22 };
+  return {
+    label: 'No mood data yet',
+    value: 0,
+  };
 }
 
 export function getMoodEmoji(label) {
-  switch (label) {
-    case 'Grateful':
-      return '\u{1F970}';
-    case 'Satisfied':
-      return '\u{1F642}';
-    case 'Sad':
-      return '\u{1F614}';
-    case 'Angry':
-      return '\u{1F620}';
-    default:
-      return '\u{1F636}';
-  }
+  return getSharedMoodEmoji(String(label ?? '').toLowerCase());
 }
 
 export function estimateAverageResponseHours(posts) {

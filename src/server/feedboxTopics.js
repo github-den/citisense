@@ -1,5 +1,6 @@
 import { createStructuredResponse } from './openaiStructured.js';
 import { getSupabaseAdmin } from './supabaseAdmin.js';
+import { normalizeIncidentLocationLabel } from '../core/utils/location.js';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MIN_VISIBLE_FEEDBACKS = 3;
@@ -90,11 +91,11 @@ function slugifyTopic(value) {
 }
 
 function extractLocationLabel(value) {
-  const text = String(value ?? '').trim();
+  const text = normalizeIncidentLocationLabel(value);
   if (!text) return 'citywide';
   const match = text.match(/^(barangay\s+[^()]+)/i);
   if (match) return match[1].trim().toLowerCase();
-  return text.replace(/\([^)]*\)/g, '').trim().toLowerCase() || 'citywide';
+  return text.trim().toLowerCase() || 'citywide';
 }
 
 function topKeywordsFromRows(rows) {

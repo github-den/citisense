@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@core/lib/supabase.js';
 import { mapPosts } from '@core/utils/postMapper.js';
+import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
 import { SERVICE_CATEGORIES, URDANETA_BARANGAYS } from '@/constants/index.js';
 
 function computeStatusBreakdown(rows) {
@@ -13,7 +14,7 @@ function computeStatusBreakdown(rows) {
 }
 
 function normalizeLocationGroup(value) {
-  const text = String(value ?? '').trim();
+  const text = normalizeIncidentLocationLabel(value);
   if (!text) return 'Other Locations';
 
   const lower = text.toLowerCase();

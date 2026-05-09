@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@core/lib/supabase.js';
 import { mapPosts } from '@core/utils/postMapper.js';
+import { buildReactionSummaryMap } from '@core/utils/mood.js';
 import { listDemoPosts } from '@core/services/demoPosts.js';
 
 const POST_SELECT = '*';
@@ -12,6 +13,14 @@ function uniqueIds(rows) {
       .map(row => row?.user_id ?? row?.author_id)
       .filter(Boolean)
   )];
+}
+
+function chunkItems(items, size = 200) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
 async function fetchAuthorMap(userIds) {
@@ -110,13 +119,36 @@ async function fetchUserReactions(userId, postIds) {
   return map;
 }
 
+async function fetchReactionSummaryMap(postIds) {
+  if (!supabase || postIds.length === 0) return new Map();
+
+  const rows = [];
+  await Promise.all(
+    chunkItems(postIds).map(async (chunk) => {
+      const { data, error } = await supabase
+        .from('reactions')
+        .select('post_id, emoji, created_at')
+        .in('post_id', chunk);
+
+      if (error) {
+        console.error('Error fetching reaction summaries:', error);
+        return;
+      }
+
+      rows.push(...(data ?? []));
+    }),
+  );
+
+  return buildReactionSummaryMap(rows);
+}
+
 async function hydrateRows(rows, currentUserId) {
   if (rows.length === 0) return [];
   const postIds = rows.map(r => r.id).filter(Boolean);
   const userIds = [...new Set(rows.map(row => row.user_id ?? row.author_id).filter(Boolean))];
 
   // Fetch all metadata in parallel for better performance
-  const [authorMap, raisedIds, followingIds, reactionMap, raiseCounts] = await Promise.all([
+  const [authorMap, raisedIds, followingIds, reactionMap, raiseCounts, reactionSummaryMap] = await Promise.all([
     fetchAuthorMap(userIds),
     fetchUserRaises(currentUserId, postIds),
     (async () => {
@@ -126,14 +158,22 @@ async function hydrateRows(rows, currentUserId) {
     })(),
     fetchUserReactions(currentUserId, postIds),
     fetchRaiseCounts(postIds),
+    fetchReactionSummaryMap(postIds),
   ]);
 
   return rows.map(row => {
     const userId = row.user_id ?? row.author_id;
+    const reactionSummary = reactionSummaryMap.get(row.id) ?? null;
     return {
       ...row,
       profiles: row.profiles ?? authorMap.get(userId) ?? null,
       raises_count: raiseCounts.has(row.id) ? raiseCounts.get(row.id) : (row.raises_count ?? 0),
+      reacts_count: reactionSummary?.total ?? row.reacts_count ?? 0,
+      reaction_breakdown: reactionSummary?.breakdown ?? row.reaction_breakdown ?? null,
+      final_mood: reactionSummary?.mood ?? row.final_mood ?? null,
+      mood_confidence: reactionSummary?.confidence ?? row.mood_confidence ?? 0,
+      mood_source: reactionSummary?.source ?? row.mood_source ?? 'none',
+      reactionSummary,
       raisedByMe: raisedIds.has(row.id),
       followedByMe: followingIds.has(userId),
       myReaction: reactionMap.get(row.id) || null

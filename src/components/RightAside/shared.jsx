@@ -1,3 +1,4 @@
+import { formatMoodLabel } from '@core/utils/mood.js';
 import { Info } from '@phosphor-icons/react';
 import styles from './RightAside.module.css';
 
@@ -11,9 +12,7 @@ export function safeList(value) {
 }
 
 export function getMoodLabel(mood) {
-  const normalized = String(mood ?? '').toLowerCase();
-  if (['grateful', 'satisfied', 'sad', 'angry'].includes(normalized)) return normalized;
-  return null;
+  return formatMoodLabel(mood);
 }
 
 export function EmptyState({ children }) {
