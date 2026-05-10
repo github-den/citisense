@@ -576,6 +576,68 @@
   text-align: left;
 }
 
+.topicRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin: 0 0 2px;
+  transition: background 0.13s var(--ease-out), transform 0.13s var(--ease-out), border-color 0.13s var(--ease-out);
+  border: 1px solid transparent;
+  text-align: left;
+}
+
+.topicRow:hover {
+  background: var(--ui-surface-hover);
+  border-color: rgba(29, 78, 216, 0.08);
+}
+
+.topicRank {
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24, 71, 240, 0.08);
+  border: 1px solid rgba(24, 71, 240, 0.14);
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 950;
+  flex-shrink: 0;
+}
+
+.topicBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.topicTitle {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topicMeta {
+  font-size: 12px;
+  color: var(--ui-text-subtle);
+  margin-top: 3px;
+  font-weight: 650;
+}
+
+.topicChevron {
+  flex-shrink: 0;
+  color: var(--text-3);
+  opacity: 0.7;
+}
+
 .tItem:hover {
   background: var(--ui-surface-hover);
   border-color: rgba(29, 78, 216, 0.08);

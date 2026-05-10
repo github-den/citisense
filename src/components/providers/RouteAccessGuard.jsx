@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@core/context/AuthContext.jsx';
 import { resolveRouteAccess } from '@core/lib/navigation/access-policy.js';
@@ -9,11 +10,18 @@ export default function RouteAccessGuard() {
   const pathname = usePathname();
   const router = useRouter();
   const { loading, session, modalOpen, openModal, needsSetup } = useAuth();
+  const bootPromptShownRef = useRef(false);
 
   useEffect(() => {
     if (loading) return;
 
     const normalizedPath = pathname && pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+    const isAuthRoute = normalizedPath === '/auth' || normalizedPath === '/auth/callback';
+
+    if (!session && !modalOpen && !isAuthRoute && !bootPromptShownRef.current) {
+      bootPromptShownRef.current = true;
+      openModal('login');
+    }
     const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const hash = typeof window !== 'undefined' ? window.location.hash : '';
     const hasPendingEmailSignup = typeof window !== 'undefined'

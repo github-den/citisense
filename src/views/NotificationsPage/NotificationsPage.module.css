@@ -217,11 +217,22 @@
 .mainContent {
   grid-column: 4;
   width: 100%;
-  padding: 0 0 80px 0;
+  padding: 24px 0 80px 0;
   justify-self: stretch;
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.zeroWrap {
+  width: 100%;
+  padding: 0 24px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.zeroWrap > * {
+  width: min(640px, 100%);
 }
 
 .group {
@@ -428,5 +439,11 @@
   .contentHeader {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 760px) {
+  .zeroWrap {
+    padding-inline: 16px;
   }
 }

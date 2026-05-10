@@ -268,6 +268,22 @@ export default function AuthModal() {
     );
   }
 
+  function SplitModal({ children, className = '' }) {
+    return (
+      <div className={`${styles.modal} ${styles.splitModal} ${className}`.trim()} onMouseDown={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        <aside className={styles.meshPanel} aria-hidden="true">
+          <p className={styles.meshText}>
+            <span className={styles.meshLine}>Speak up.</span>
+            <span className={`${styles.meshLine} ${styles.meshLineNowrap}`}>Shape your city.</span>
+          </p>
+        </aside>
+        <section className={styles.modalContentPane}>
+          {children}
+        </section>
+      </div>
+    );
+  }
+
   if (legalView) {
     const isTerms = legalView === 'terms';
     return (
@@ -337,7 +353,7 @@ export default function AuthModal() {
   if (view === 'forgot' || view === 'forgotSent') {
     return (
       <div className={styles.overlay} onMouseDown={closeModal}>
-        <div className={styles.modal} onMouseDown={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        <SplitModal>
           <ModalHeader />
 
           <button className={styles.backBtn} onClick={() => { setView('main'); setError(''); }}>
@@ -382,7 +398,7 @@ export default function AuthModal() {
               </form>
             </>
           )}
-        </div>
+        </SplitModal>
       </div>
     );
   }
@@ -390,7 +406,7 @@ export default function AuthModal() {
   if (view === 'otp') {
     return (
       <div className={styles.overlay} onMouseDown={closeModal}>
-        <div className={styles.modal} onMouseDown={e => e.stopPropagation()} role="dialog" aria-modal="true">
+        <SplitModal>
           <ModalHeader />
 
           <button className={styles.backBtn} onClick={() => { setView('main'); setError(''); setOtpCode(Array(6).fill('')); }}>
@@ -440,14 +456,14 @@ export default function AuthModal() {
           <button className={styles.resendCodeBtn} type="button" onClick={resendOtp} disabled={busy}>
             {otpSecondsLeft <= 0 ? 'Send new code' : 'Resend code'}
           </button>
-        </div>
+        </SplitModal>
       </div>
     );
   }
 
   return (
     <div className={styles.overlay} onMouseDown={closeModal}>
-      <div className={styles.modal} onMouseDown={e => e.stopPropagation()} role="dialog" aria-modal="true">
+      <SplitModal>
         <ModalHeader />
 
 
@@ -548,7 +564,7 @@ export default function AuthModal() {
         <button className={styles.guestBtn} onClick={continueAsGuest}>
           Continue without an account
         </button>
-      </div>
+      </SplitModal>
     </div>
   );
 }

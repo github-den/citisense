@@ -141,9 +141,11 @@ export default function DraftsPage({ embedded = false }) {
             );
           })
         ) : (
-          <div className={shellStyles.zeroState}>
-            <p className={shellStyles.zeroTitle}>No drafts yet.</p>
-            <span className={shellStyles.zeroText}>Start writing and save as draft anytime before submitting.</span>
+          <div className={shellStyles.zeroInset}>
+            <div className={shellStyles.zeroState}>
+              <p className={shellStyles.zeroTitle}>No drafts yet.</p>
+              <span className={shellStyles.zeroText}>Start writing and save as draft anytime before submitting.</span>
+            </div>
           </div>
         )}
       </div>

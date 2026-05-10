@@ -26,6 +26,14 @@ function NavigationLoaderInner() {
   const searchParams = useSearchParams();
   const { loading: authLoading } = useAuth();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isBootLoading, setIsBootLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsBootLoading(false);
+    }, 900);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const triggerLoader = () => setIsNavigating(true);
@@ -48,7 +56,7 @@ function NavigationLoaderInner() {
     return () => clearTimeout(timer);
   }, [pathname, searchParams]);
 
-  const active = authLoading || isNavigating;
+  const active = isBootLoading || authLoading || isNavigating;
 
   useEffect(() => {
     if (active) {

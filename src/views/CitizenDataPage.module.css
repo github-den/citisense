@@ -173,6 +173,10 @@
   line-height: 1.55;
 }
 
+.zeroInset {
+  margin: 24px 24px 0;
+}
+
 .sectionTitle {
   margin: 0 0 14px;
   color: var(--text);
@@ -388,5 +392,9 @@
 
   .statGrid {
     grid-template-columns: 1fr;
+  }
+
+  .zeroInset {
+    margin: 16px 16px 0;
   }
 }

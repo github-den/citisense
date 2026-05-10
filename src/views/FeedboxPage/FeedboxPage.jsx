@@ -9,19 +9,22 @@ import {
 import { Pie, PieChart, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import Card from '../../components/ui/Card.jsx';
 import Popover from '../../components/ui/Popover.jsx';
+import Button from '../../components/ui/Button.jsx';
 import FeedCard from '../../components/FeedCard/FeedCard.jsx';
 import FeedCardSkeleton from '../../components/FeedCard/FeedCardSkeleton.jsx';
 import { useFeedboxGroups } from '@core/hooks/useFeedboxGroups.js';
-import { useFeedboxes } from '@core/hooks/useFeedboxes.js';
+import { useTopicFeedboxes } from '@core/hooks/useTopicFeedboxes.js';
 import { mapPosts } from '@core/utils/postMapper.js';
 import { SERVICE_CATEGORIES, URDANETA_BARANGAYS } from '../../constants/index.js';
 import styles from './FeedboxPage.module.css';
+import shellStyles from '../CitizenDataPage.module.css';
 
 const STATUS_COLORS = {
   active: '#16a34a',
   resolved: '#2563eb',
   others: '#d97706',
 };
+const TOPIC_BATCH_SIZE = 9;
 
 const TOPIC_MIN_FEEDBACKS = 3;
 const TOPIC_STOP_WORDS = new Set([
@@ -276,50 +279,23 @@ function FeedboxPlaceholder() {
   );
 }
 
-function GroupCard({ title, count, totalRaises, icon: Icon, onClick }) {
+function GroupCard({ title, count, subLabel, icon: Icon, onClick }) {
   return (
     <Card className={styles.feedboxCard}>
       <button type="button" className={styles.feedboxButton} onClick={onClick}>
         <div className={styles.cardTop}>
           <div className={styles.cardLeft}>
             <span className={styles.boxIcon}>
-              <Archive size={18} weight="duotone" />
+              <Icon size={18} weight="duotone" />
             </span>
             <span className={styles.metricCount}>{count}</span>
           </div>
         </div>
         <div className={styles.cardBody}>
-          <h2 className={styles.cardTitle}>{title}</h2>
-          <p className={styles.cardSub}>{totalRaises} raises</p>
-        </div>
-      </button>
-    </Card>
-  );
-}
-
-function TopicCard({ box, onClick }) {
-  return (
-    <Card className={styles.feedboxCard}>
-      <button type="button" className={styles.feedboxButton} onClick={onClick}>
-        <div className={styles.cardTop}>
-          <div className={styles.cardLeft}>
-            <span className={styles.boxIcon}>
-              <Archive size={18} weight="duotone" />
-            </span>
-            <Popover
-              align="left"
-              trigger={<span className={styles.metricCount}>{box.feedback_count ?? 0}</span>}
-              panelClassName={styles.metricPopoverPanel}
-            >
-              <BreakdownPopover box={box} />
-            </Popover>
-          </div>
-        </div>
-        <div className={styles.cardBody}>
-          <h2 className={styles.cardTitle}>{box.topic}</h2>
-          <p className={styles.cardSub}>
-            {box.raises_count ?? 0} raises
-          </p>
+          <h2 className={styles.cardTitle}>
+            <span className={styles.cardTitleText}>{title}</span>
+          </h2>
+          <p className={styles.cardSub}>{subLabel}</p>
         </div>
       </button>
     </Card>
@@ -330,7 +306,7 @@ export default function FeedboxPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { rows, loading, error: groupsError } = useFeedboxGroups();
-  const { feedboxes: topicFeedboxes, loading: loadingTopics, error: topicsError } = useFeedboxes();
+  const { topics: topicFeedboxes, loading: loadingTopics, error: topicsError } = useTopicFeedboxes({ autoRefreshMs: 30 * 60 * 1000 });
   
   const urlTab = searchParams.get('tab') === 'service'
     ? 'service'
@@ -341,20 +317,49 @@ export default function FeedboxPage() {
 
   const [activeTab, setActiveTab] = useState(urlTab);
   const [activeSubFilter, setActiveSubFilter] = useState(urlFilter);
+  const [topicVisibleCount, setTopicVisibleCount] = useState(TOPIC_BATCH_SIZE);
 
   useEffect(() => {
     setActiveTab(urlTab);
     setActiveSubFilter(urlFilter);
   }, [urlTab, urlFilter]);
 
+  useEffect(() => {
+    if (activeTab === 'topic') {
+      setTopicVisibleCount(TOPIC_BATCH_SIZE);
+    }
+  }, [activeTab]);
+
   const services = SERVICE_CATEGORIES;
   const locations = URDANETA_BARANGAYS;
 
-  const selectGroupFilter = (tab, filter) => {
+  const selectGroupFilter = async (tab, filter, payload = null) => {
     if (tab === 'topic') {
-      const params = new URLSearchParams();
-      params.set('q', filter);
-      router.push(`/search?${params.toString()}`);
+      const topicTitle = String(filter ?? '').trim();
+      if (!topicTitle) return;
+      window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
+
+      try {
+        const res = await fetch('/api/posts/by-topic', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            topicTitle,
+            keywords: Array.isArray(payload?.keywords) ? payload.keywords : [],
+          }),
+        });
+
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json?.error ?? 'Unable to load topic posts.');
+
+        sessionStorage.setItem('citisense_topic_posts', JSON.stringify(json.posts ?? []));
+        sessionStorage.setItem('citisense_topic_query', topicTitle);
+        router.push(`/search?q=${encodeURIComponent(topicTitle)}&topic=1`);
+      } catch {
+        const params = new URLSearchParams();
+        params.set('q', topicTitle);
+        router.push(`/search?${params.toString()}`);
+      }
       return;
     }
 
@@ -392,21 +397,31 @@ export default function FeedboxPage() {
   const localTopicCards = useMemo(() => buildLocalTopicFeedboxes(rows), [rows]);
   const topicCards = useMemo(() => {
     if (Array.isArray(topicFeedboxes) && topicFeedboxes.length > 0) {
-      return mergeTopicCards(topicFeedboxes.map((box) => {
-        const topic = chooseSearchableTopicLabel({
-          title: box.topic,
-          keywords: box.keywords ?? [],
+      const seen = new Set();
+      return topicFeedboxes
+        .map((row) => ({
+        id: row.id,
+        topic: row.title,
+        keywords: row.keywords ?? [],
+        rank: row.rank ?? null,
+        feedback_count: row.post_count ?? 0,
+        raises_count: row.raises_count ?? 0,
+        }))
+        .filter((row) => {
+          const key = String(row.topic ?? '').trim().toLowerCase();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
         });
-        return {
-          ...box,
-          topic,
-          slug: slugifyTopic(topic),
-          id: box.id?.startsWith('topic:') ? `topic:${slugifyTopic(topic)}` : box.id,
-        };
-      }));
     }
     return mergeTopicCards(localTopicCards);
   }, [localTopicCards, topicFeedboxes]);
+
+  const visibleTopicCards = useMemo(
+    () => topicCards.slice(0, topicVisibleCount),
+    [topicCards, topicVisibleCount],
+  );
+  const hasMoreTopics = visibleTopicCards.length < topicCards.length;
 
   const filteredPosts = useMemo(() => {
     if (!activeSubFilter || activeSubFilter === 'all') return [];
@@ -515,11 +530,14 @@ export default function FeedboxPage() {
             ) : (
               <div className={styles.grid}>
                 {activeTab === 'topic'
-                  ? topicCards.map((box) => (
-                    <TopicCard
+                  ? visibleTopicCards.map((box) => (
+                    <GroupCard
                       key={box.id}
-                      box={box}
-                      onClick={() => selectGroupFilter('topic', box.topic)}
+                      title={box.topic}
+                      count={box.feedback_count ?? 0}
+                      subLabel={`${box.raises_count ?? 0} raises`}
+                      icon={Broadcast}
+                      onClick={() => selectGroupFilter('topic', box.topic, { keywords: box.keywords })}
                     />
                   ))
                   : groupData.map((group) => (
@@ -527,18 +545,40 @@ export default function FeedboxPage() {
                       key={group.label} 
                       title={group.label} 
                       count={group.count}
-                      totalRaises={group.totalRaises}
+                      subLabel={`${group.totalRaises} raises`}
                       icon={group.icon}
                       onClick={() => selectGroupFilter(activeTab, group.label)}
                     />
                   ))}
-                {Array.from({
-                  length: ((activeTab === 'topic' ? topicCards.length : groupData.length) % 3 === 0)
-                    ? 0
-                    : 3 - ((activeTab === 'topic' ? topicCards.length : groupData.length) % 3),
-                }).map((_, i) => (
-                  <FeedboxPlaceholder key={`placeholder-${i}`} />
-                ))}
+                {activeTab === 'topic' ? (
+                  hasMoreTopics ? (
+                    <div className={styles.topicGridCenter}>
+                      <Button
+                        variant="outline"
+                        size="md"
+                        className={styles.topicActionTrackButton}
+                        onClick={() => setTopicVisibleCount((prev) => prev + TOPIC_BATCH_SIZE)}
+                      >
+                        Show more
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className={styles.topicGridCenter}>
+                      <div className={styles.topicDoneBody}>
+                        <div className={`${shellStyles.zeroState} ${styles.topicDoneState}`}>
+                          <p className={shellStyles.zeroTitle}>You&apos;re all caught up.</p>
+                          <span className={shellStyles.zeroText}>New topic feedboxes will appear here after the next trend refresh.</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  Array.from({
+                    length: (groupData.length % 3 === 0) ? 0 : 3 - (groupData.length % 3),
+                  }).map((_, i) => (
+                    <FeedboxPlaceholder key={`placeholder-${i}`} />
+                  ))
+                )}
               </div>
             )
           ) : (

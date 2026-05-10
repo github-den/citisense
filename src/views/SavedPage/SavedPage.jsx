@@ -175,14 +175,18 @@ export default function SavedPage({ embedded = false }) {
             <FeedCardSkeleton />
           </>
         ) : error ? (
-          <div className={shellStyles.zeroState}>
-            <p className={shellStyles.zeroTitle}>Saved feedback could not load.</p>
-            <span className={shellStyles.zeroText}>Try refreshing the page in a moment.</span>
+          <div className={shellStyles.zeroInset}>
+            <div className={shellStyles.zeroState}>
+              <p className={shellStyles.zeroTitle}>Saved feedback could not load.</p>
+              <span className={shellStyles.zeroText}>Try refreshing the page in a moment.</span>
+            </div>
           </div>
         ) : savedPosts.length === 0 ? (
-          <div className={shellStyles.zeroState}>
-            <p className={shellStyles.zeroTitle}>Nothing saved yet.</p>
-            <span className={shellStyles.zeroText}>Tap the bookmark on any feedback to save it here for follow-up.</span>
+          <div className={shellStyles.zeroInset}>
+            <div className={shellStyles.zeroState}>
+              <p className={shellStyles.zeroTitle}>Nothing saved yet.</p>
+              <span className={shellStyles.zeroText}>Tap the bookmark on any feedback to save it here for follow-up.</span>
+            </div>
           </div>
         ) : (
           savedPosts.map((post) => (

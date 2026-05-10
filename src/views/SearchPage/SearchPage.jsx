@@ -19,6 +19,7 @@ import FeedCardSkeleton from '../../components/FeedCard/FeedCardSkeleton.jsx';
 import { useSearch } from '@core/hooks/useSearch.js';
 import { useAuth } from '@core/context/AuthContext.jsx';
 import { supabase } from '@core/lib/supabase.js';
+import { mapPosts } from '@core/utils/postMapper.js';
 import { SERVICE_CATEGORIES } from '../../constants/index.js';
 import SearchFilterSelect from '../../components/ui/SearchFilterSelect.jsx';
 import DateRangePicker from './DateRangePicker.jsx';
@@ -434,6 +435,9 @@ export default function SearchPage({ initialQuery = '', initialFilters, initialT
   const [committed, setCommit]   = useState(initialQuery);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [filters,   setFilters]   = useState(initialFilters ?? EMPTY_FILTERS);
+  const searchParams = useSearchParams();
+  const isTopicMode = searchParams.get('topic') === '1';
+  const [topicResults, setTopicResults] = useState(null);
 
   // Sync when URL params change (new search from TopHeader or filter navigation)
   useEffect(() => { setInputVal(initialQuery); setCommit(initialQuery); }, [initialQuery]);
@@ -446,7 +450,19 @@ export default function SearchPage({ initialQuery = '', initialFilters, initialT
     initialFilters?.dateRange?.start, initialFilters?.dateRange?.end,
   ]);
 
-  const { results, loading } = useSearch(committed);
+  useEffect(() => {
+    if (!isTopicMode) { setTopicResults(null); return; }
+    try {
+      const stored = sessionStorage.getItem('citisense_topic_posts');
+      const parsed = stored ? JSON.parse(stored) : [];
+      setTopicResults(mapPosts(Array.isArray(parsed) ? parsed : []));
+    } catch {
+      setTopicResults([]);
+    }
+  }, [isTopicMode, committed]);
+
+  const { results: searchResults, loading } = useSearch(isTopicMode ? '' : committed);
+  const results = isTopicMode ? (topicResults ?? []) : searchResults;
 
   return {
     feed: (
@@ -456,7 +472,7 @@ export default function SearchPage({ initialQuery = '', initialFilters, initialT
           activeTab={activeTab}
           filters={filters}
           results={results}
-          loading={loading}
+          loading={isTopicMode ? false : loading}
         />
       </div>
     ),

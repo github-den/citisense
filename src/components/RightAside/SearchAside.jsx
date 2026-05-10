@@ -1,15 +1,15 @@
 import { useMemo } from 'react';
 import { MagnifyingGlass, TrendUp } from '@phosphor-icons/react';
-import { useTrendingFeedboxes } from '@core/hooks/useTrendingFeedboxes.js';
+import { useTopicFeedboxes } from '@core/hooks/useTopicFeedboxes.js';
 import { EmptyState } from './shared.jsx';
 import styles from './RightAside.module.css';
 
 export default function SearchAside({ setPage, setSearchQuery }) {
-  const { topTen: trendingTop, loading: trendingLoading } = useTrendingFeedboxes({ top: 10, pick: 4 });
+  const { topics, loading: trendingLoading } = useTopicFeedboxes({ autoRefreshMs: 30 * 60 * 1000 });
 
   const otherSearchedFor = useMemo(() => {
-    return trendingTop.map((row) => row.topic).filter(Boolean).slice(0, 6);
-  }, [trendingTop]);
+    return (topics ?? []).map((row) => row.title).filter(Boolean).slice(0, 6);
+  }, [topics]);
 
   function runSearch(value) {
     const query = String(value ?? '').trim();

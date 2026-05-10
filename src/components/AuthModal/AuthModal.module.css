@@ -23,6 +23,67 @@
   animation: fadeUp 0.22s var(--ease-out);
 }
 
+.splitModal {
+  max-width: 920px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.meshPanel {
+  position: relative;
+  min-height: 100%;
+  padding: 28px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 120% at 0% 100%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 54%),
+    radial-gradient(100% 100% at 100% 0%, rgba(56, 189, 248, 0.28) 0%, rgba(56, 189, 248, 0) 58%),
+    radial-gradient(85% 85% at 50% 30%, rgba(34, 211, 238, 0.22) 0%, rgba(34, 211, 238, 0) 62%),
+    linear-gradient(160deg, #1e3a8a 0%, #1d4ed8 52%, #0284c7 100%);
+}
+
+.meshPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(155deg, rgba(30, 64, 175, 0.78) 0%, rgba(2, 132, 199, 0.64) 100%),
+    url('/box.png');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  mix-blend-mode: screen;
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.meshText {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(26px, 2.6vw, 40px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  max-width: 10ch;
+}
+
+.meshLine {
+  display: block;
+}
+
+.meshLineNowrap {
+  white-space: nowrap;
+}
+
+.modalContentPane {
+  padding: 24px;
+}
+
 .legalModal {
   width: min(720px, 100%);
   height: min(90vh, 1000px);
@@ -655,6 +716,20 @@
     max-height: calc(100vh - 20px);
     overflow-y: auto;
     border-radius: 26px;
+    padding: 24px 20px 22px;
+  }
+
+  .splitModal {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
+
+  .meshPanel {
+    min-height: 170px;
+    padding: 20px;
+  }
+
+  .modalContentPane {
     padding: 24px 20px 22px;
   }
 

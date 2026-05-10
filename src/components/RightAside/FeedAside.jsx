@@ -1,7 +1,8 @@
-import { useEffect } from 'react';
-import { Archive, CaretRight, TrendUp } from '@phosphor-icons/react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Archive, CaretRight } from '@phosphor-icons/react';
 import { useCityMood } from '@core/hooks/useCityMood.js';
-import { useTrendingFeedboxes } from '@core/hooks/useTrendingFeedboxes.js';
+import { useTopicFeedboxes } from '@core/hooks/useTopicFeedboxes.js';
 import { getMoodLabel } from './shared.jsx';
 import styles from './RightAside.module.css';
 
@@ -27,19 +28,52 @@ function FeedboxPlaceholders() {
 }
 
 export default function FeedAside({ setPage, setSearchQuery, onReady }) {
-  const { picked: trendingPicked, loading: trendingLoading } = useTrendingFeedboxes({ top: 10, pick: 4 });
+  const router = useRouter();
+  const { topics, loading: topicsLoading } = useTopicFeedboxes({ autoRefreshMs: 30 * 60 * 1000 });
   const { data: cityMood, loading: cityMoodLoading } = useCityMood({ days: 7 });
   const cityMoodLabel = getMoodLabel(cityMood?.mood);
+  const [topicBusy, setTopicBusy] = useState(false);
 
   useEffect(() => {
-    if (!trendingLoading && !cityMoodLoading) onReady?.();
-  }, [cityMoodLoading, onReady, trendingLoading]);
+    if (!topicsLoading && !cityMoodLoading) onReady?.();
+  }, [cityMoodLoading, onReady, topicsLoading]);
 
-  function runSearch(value) {
-    const query = String(value ?? '').trim();
-    if (!query) return;
-    setSearchQuery(query);
-    setPage('search');
+  const topTopics = useMemo(() => (topics ?? []).slice(0, 4), [topics]);
+
+  async function openTopic(topic) {
+    const topicTitle = String(topic?.title ?? '').trim();
+    if (!topicTitle || topicBusy) return;
+
+    setTopicBusy(true);
+    window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
+    try {
+      const res = await fetch('/api/posts/by-topic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          topicTitle,
+          keywords: Array.isArray(topic?.keywords) ? topic.keywords : [],
+        }),
+      });
+
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload?.error ?? 'Unable to load topic posts.');
+
+      sessionStorage.setItem('citisense_topic_posts', JSON.stringify(payload.posts ?? []));
+      sessionStorage.setItem('citisense_topic_query', topicTitle);
+      router.push(`/search?q=${encodeURIComponent(topicTitle)}&topic=1`);
+    } catch (err) {
+      // Fallback to normal search if semantic route fails
+      setSearchQuery(topicTitle);
+      setPage('search');
+    } finally {
+      setTopicBusy(false);
+    }
+  }
+
+  function openTopicTab() {
+    window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
+    router.push('/feedbox?tab=topic');
   }
 
   return (
@@ -69,24 +103,25 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
 
       <div className={`${styles.widget} ${styles.listWidget}`}>
         <div className={styles.widgetTitle}>
-          <Archive size={18} weight="fill" color="var(--ui-accent)" /> Feedboxes for you
+          <Archive size={18} weight="fill" color="var(--ui-accent)" /> Topic feedbox
           <button
             className={styles.widgetSeeMore}
-            onClick={() => setPage('feedbox')}
+            onClick={openTopicTab}
             type="button"
           >
             See more
           </button>
         </div>
         <div className={styles.listBody}>
-          {trendingPicked.length > 0 ? (
-            trendingPicked.map((item) => (
-              <button key={item.id} className={styles.tItem} onClick={() => runSearch(item.topic)} type="button">
-                <div className={styles.tTopic}>{item.topic}</div>
-                <div className={styles.tMeta}>
-                  <TrendUp size={13} weight="bold" />
-                  {item.raises_count ?? 0} raises, {item.feedback_count ?? 0} feedback entries
+          {topTopics.length > 0 ? (
+            topTopics.map((topic) => (
+              <button key={topic.id} className={styles.topicRow} onClick={() => openTopic(topic)} type="button">
+                <div className={styles.topicRank}>{topic.rank ?? ''}</div>
+                <div className={styles.topicBody}>
+                  <div className={styles.topicTitle}>{topic.title}</div>
+                  <div className={styles.topicMeta}>{topic.post_count ?? 0} posts</div>
                 </div>
+                <CaretRight size={14} weight="bold" className={styles.topicChevron} />
               </button>
             ))
           ) : (

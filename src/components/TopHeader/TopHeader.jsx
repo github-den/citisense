@@ -14,7 +14,7 @@ import {
   GearSix,
 } from '@phosphor-icons/react';
 import { useAuth } from '@core/context/AuthContext.jsx';
-import { notificationItems } from '../../data/notifications.js';
+import { useNotifications } from '@core/hooks/useNotifications.js';
 import Avatar from '../ui/Avatar.jsx';
 import Button from '../ui/Button.jsx';
 import Menu from '../ui/Menu.jsx';
@@ -42,6 +42,7 @@ export default function TopHeader({ page, secondHeader, setPage, setSearchQuery 
   const { session, isAuthenticated, openModal, handleSignOut, loading } = useAuth();
   const [notificationTab, setNotificationTab] = useState('all');
   const isOnboardingHeader = page === 'setup' || page === 'create-password';
+  const { notifications, unreadCount } = useNotifications({ userId: session?.user?.id, limit: 40 });
 
   // Keep the search input in sync with the URL's ?q= when on the search page
   const searchParams = useSearchParams();
@@ -63,14 +64,9 @@ export default function TopHeader({ page, secondHeader, setPage, setSearchQuery 
   }, [page, secondHeader?.value, setPage, isAuthenticated]);
 
   const headerNotifications = useMemo(() => {
-    const visible = notificationItems.filter((item) => notificationTab === 'all' || item.unread);
+    const visible = (notifications ?? []).filter((item) => notificationTab === 'all' || item.unread);
     return visible.slice(0, 4);
-  }, [notificationTab]);
-
-  const unreadCount = useMemo(
-    () => notificationItems.filter((item) => item.unread).length,
-    [],
-  );
+  }, [notificationTab, notifications]);
 
   const menuItems = useMemo(() => ([
     { key: 'profile', label: 'My profile', Icon: UserCircle, onClick: () => setPage('profile') },
@@ -210,7 +206,7 @@ export default function TopHeader({ page, secondHeader, setPage, setSearchQuery 
                         key={item.id}
                         type="button"
                         className={styles.notificationItem}
-                        onClick={() => setPage(item.page)}
+                        onClick={() => setPage(item.page ?? 'notifications')}
                       >
                         <span className={styles.notificationItemIcon}>
                           <Icon size={16} weight="fill" />

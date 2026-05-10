@@ -11,8 +11,10 @@ import {
   SquaresFour,
 } from '@phosphor-icons/react';
 import styles from './NotificationsPage.module.css';
-import { notificationItems } from '../../data/notifications.js';
 import Popover from '../../components/ui/Popover.jsx';
+import { useAuth } from '@core/context/AuthContext.jsx';
+import { useNotifications } from '@core/hooks/useNotifications.js';
+import shellStyles from '../CitizenDataPage.module.css';
 
 const TYPE_META = {
   Raises: { Icon: ArrowFatUp, color: 'var(--green)', bg: 'rgba(22,163,74,0.10)' },
@@ -182,14 +184,10 @@ function getEmptyCopy(readFilter, typeFilter) {
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const { session } = useAuth();
   const [readFilter, setReadFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [readIds, setReadIds] = useState(() => new Set());
-
-  const notifications = useMemo(
-    () => notificationItems.map(item => ({ ...item, unread: item.unread && !readIds.has(item.id) })),
-    [readIds],
-  );
+  const { notifications, markRead } = useNotifications({ userId: session?.user?.id, limit: 120 });
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter((item) => {
@@ -217,7 +215,7 @@ export default function NotificationsPage() {
   const selectedActivity = TYPE_FILTERS.find(item => item.key === typeFilter)?.label ?? 'All';
 
   function openItem(item) {
-    setReadIds(prev => new Set(prev).add(item.id));
+    if (item?.id) markRead(item.id);
     if (item.page) {
       window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
       router.push(`/${item.page}`);
@@ -265,9 +263,11 @@ export default function NotificationsPage() {
 
       <main className={styles.mainContent}>
         {filteredNotifications.length === 0 ? (
-          <div className={styles.zeroState}>
-            <p className={styles.zeroTitle}>{emptyCopy.title}</p>
-            <span className={styles.zeroText}>{emptyCopy.sub}</span>
+          <div className={styles.zeroWrap}>
+            <div className={shellStyles.zeroState}>
+              <p className={shellStyles.zeroTitle}>{emptyCopy.title}</p>
+              <span className={shellStyles.zeroText}>{emptyCopy.sub}</span>
+            </div>
           </div>
         ) : (
           Object.entries(groups).map(([bucket, items]) => (

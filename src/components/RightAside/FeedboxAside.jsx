@@ -1,14 +1,13 @@
 import { Archive, MapPinArea, TrendUp } from '@phosphor-icons/react';
-import { useFeedboxes } from '@core/hooks/useFeedboxes.js';
+import { useTopicFeedboxes } from '@core/hooks/useTopicFeedboxes.js';
 import { EmptyState } from './shared.jsx';
 import styles from './RightAside.module.css';
 
 export default function FeedboxAside() {
-  const { feedboxes } = useFeedboxes();
-  const totalFeedback = feedboxes.reduce((sum, box) => sum + (box.feedback_count ?? 0), 0);
-  const locations = new Set(feedboxes.map((box) => box.location).filter(Boolean));
-  const topBoxes = [...feedboxes]
-    .sort((a, b) => ((b.raises_count ?? 0) + (b.feedback_count ?? 0)) - ((a.raises_count ?? 0) + (a.feedback_count ?? 0)))
+  const { topics } = useTopicFeedboxes({ autoRefreshMs: 30 * 60 * 1000 });
+  const totalFeedback = (topics ?? []).reduce((sum, box) => sum + (box.post_count ?? 0), 0);
+  const topBoxes = [...(topics ?? [])]
+    .sort((a, b) => Number(a.rank ?? 9999) - Number(b.rank ?? 9999))
     .slice(0, 3);
 
   return (
@@ -19,16 +18,16 @@ export default function FeedboxAside() {
         </div>
         <div className={styles.charterSummaryGrid}>
           <div className={styles.charterSummaryItem}>
-            <strong>{feedboxes.length}</strong>
+            <strong>{topics?.length ?? 0}</strong>
             <span>Active topic feedboxes currently visible.</span>
           </div>
           <div className={styles.charterSummaryItem}>
             <strong>{totalFeedback}</strong>
-            <span>Total feedback entries grouped into raw topic patterns.</span>
+            <span>Total related posts covered by ranked topics.</span>
           </div>
           <div className={styles.charterSummaryItem}>
-            <strong>{locations.size || 'Citywide'}</strong>
-            <span>Distinct places currently surfacing in box titles.</span>
+            <strong>{topBoxes.length || 0}</strong>
+            <span>Top ranked topics currently highlighted.</span>
           </div>
         </div>
       </div>
@@ -53,11 +52,11 @@ export default function FeedboxAside() {
             topBoxes.map((box) => (
               <div key={box.id} className={styles.asideCard}>
                 <div>
-                  <div className={styles.asideCardTitle}>{box.topic}</div>
+                  <div className={styles.asideCardTitle}>#{box.rank ?? '-'} {box.title}</div>
                   <div className={styles.asideCardMeta}>
-                    {box.feedback_count ?? 0} feedback entries
+                    {box.post_count ?? 0} related posts
                   </div>
-                  <div className={styles.asideCardSub}>{box.location || 'citywide'}</div>
+                  <div className={styles.asideCardSub}>{(box.keywords ?? []).slice(0, 2).join(', ') || 'topic cluster'}</div>
                 </div>
               </div>
             ))
