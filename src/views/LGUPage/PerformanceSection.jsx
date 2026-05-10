@@ -84,6 +84,7 @@ export default function PerformanceTab({
               </div>
               <div className={styles.kpiHeroEmoji}>{getMoodEmoji(filteredMood.label)}</div>
               <span className={styles.kpiValueLabel}>{filteredMood.label}</span>
+              <span className={styles.kpiValueLabel}>{filteredMood.detail}</span>
             </article>
 
             <article className={styles.kpiCard}>

@@ -23,8 +23,9 @@ export default function LGUPerformancePage() {
   const [performanceTime, setPerformanceTime] = useState('30');
 
   const performanceRef = useRef(null);
+  const cityMoodDays = performanceTime === 'all' ? null : Number.parseInt(performanceTime, 10);
 
-  const { data: cityMood } = useCityMood({ days: 7 });
+  const { data: cityMood } = useCityMood({ days: cityMoodDays });
   const { posts } = useFeed();
 
   const availableLocations = URDANETA_BARANGAYS;

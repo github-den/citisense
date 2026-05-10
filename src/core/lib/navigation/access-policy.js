@@ -8,7 +8,6 @@ const GUEST_ALLOWED_EXACT = new Set([
   '/auth/callback',
   '/create-password',
   '/agreement',
-  '/admin',
 ]);
 
 const GUEST_ALLOWED_PATTERNS = [
@@ -44,17 +43,6 @@ export function resolveRouteAccess({ pathname, session }) {
         redirectTo: routes.root,
         promptLogin: true,
         promptMessage: 'Please sign in to access this page.',
-      };
-    }
-    return { allowed: true };
-  }
-
-  if (audience === 'admin') {
-    if (!isAdminPath(normalizedPath)) {
-      return {
-        allowed: false,
-        redirectTo: '/admin',
-        promptLogin: false,
       };
     }
     return { allowed: true };

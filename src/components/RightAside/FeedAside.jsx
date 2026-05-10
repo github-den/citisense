@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
-import { Archive, CaretRight, SmileyWink, TrendUp } from '@phosphor-icons/react';
-import { useTrendingFeedboxes } from '@core/hooks/useTrendingFeedboxes.js';
+import { Archive, CaretRight, TrendUp } from '@phosphor-icons/react';
 import { useCityMood } from '@core/hooks/useCityMood.js';
+import { useTrendingFeedboxes } from '@core/hooks/useTrendingFeedboxes.js';
 import { getMoodLabel } from './shared.jsx';
 import styles from './RightAside.module.css';
 
@@ -44,25 +44,28 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
 
   return (
     <>
-      <div className={styles.widget}>
-        <div className={styles.widgetTitle}>
-          <SmileyWink size={18} weight="fill" color="var(--ui-accent)" /> City Mood
-          <button
-            className={styles.widgetSeeMore}
-            onClick={() => setPage('cityPerformance')}
-            type="button"
-          >
-            See more
-          </button>
+      <section className={styles.moodCard}>
+        <div className={styles.moodTop}>
+          <div>
+            <div className={styles.moodEyebrow}>City mood</div>
+            <div className={`${styles.moodTitle} ${!cityMoodLabel ? styles.moodTitleEmpty : ''}`}>
+              <span>{cityMoodLabel || 'No mood data yet'}</span>
+            </div>
+            {cityMood?.total ? (
+              <div className={styles.moodSub}>{cityMood.total} reactions recorded in the last 7 days.</div>
+            ) : null}
+          </div>
+          <span className={styles.moodEmoji} aria-hidden>{cityMood?.emoji || '\u{1F636}'}</span>
         </div>
-        <div className={`${styles.moodTitle} ${!cityMoodLabel ? styles.moodTitleEmpty : ''}`}>
-          {cityMoodLabel ? cityMoodLabel : 'No mood data yet'}
-          <span className={styles.moodEmoji} aria-hidden>{cityMood?.emoji || '\uD83D\uDE36'}</span>
-        </div>
-        {cityMood?.total ? (
-          <div className={styles.moodSub}>{cityMood.total} reactions recorded in the last 7 days.</div>
-        ) : null}
-      </div>
+
+        <button
+          className={styles.moodBtn}
+          onClick={() => setPage('cityPerformance')}
+          type="button"
+        >
+          See more
+        </button>
+      </section>
 
       <div className={`${styles.widget} ${styles.listWidget}`}>
         <div className={styles.widgetTitle}>

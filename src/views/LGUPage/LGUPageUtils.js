@@ -165,11 +165,20 @@ export function filterPosts(posts, service, location, timeRange = 'all') {
 }
 
 export function deriveFilteredMood(posts, cityMood) {
-  const summary = summarizeMoodFromPosts(posts);
+  const summary = summarizeMoodFromPosts(posts, { allowPrediction: false });
   if (summary.mood) {
     return {
       label: formatMoodLabel(summary.mood),
       value: Math.round(summary.confidence * 100),
+      detail: `${summary.total} reactions in this range`,
+    };
+  }
+
+  if (summary.total > 0) {
+    return {
+      label: 'Low confidence',
+      value: 0,
+      detail: `${summary.total} reactions are still mixed`,
     };
   }
 
@@ -177,12 +186,16 @@ export function deriveFilteredMood(posts, cityMood) {
     return {
       label: cityMood?.mood ? formatMoodLabel(cityMood.mood) : 'No mood data yet',
       value: 0,
+      detail: cityMood?.total
+        ? `${cityMood.total} city reactions in this range`
+        : 'No city reactions recorded in this range',
     };
   }
 
   return {
     label: 'No mood data yet',
     value: 0,
+    detail: 'No reactions recorded in this range',
   };
 }
 

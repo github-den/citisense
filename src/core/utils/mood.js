@@ -12,11 +12,12 @@ export const MOOD_LABELS = {
 export const MOOD_EMOJIS = {
   grateful: '\u{1F970}',
   satisfied: '\u{1F642}',
-  sad: '\u{1F614}',
-  angry: '\u{1F620}',
+  sad: '\u{1F622}',
+  angry: '\u{1F621}',
 };
 
 const REACTION_TO_MOOD = {
+  '\u{1F970}': 'grateful',
   '\u{2764}': 'grateful',
   '\u{1F642}': 'satisfied',
   '\u{1F622}': 'sad',
@@ -175,7 +176,8 @@ export function summarizeMoodFromReactionRows(rows = []) {
   return finalizeMoodSummary(breakdown, latestByMood);
 }
 
-export function summarizeMoodFromPosts(posts = []) {
+export function summarizeMoodFromPosts(posts = [], options = {}) {
+  const allowPrediction = options.allowPrediction !== false;
   const breakdown = createEmptyMoodBreakdown();
   const latestByMood = {};
   const predictedBreakdown = createEmptyMoodBreakdown();
@@ -215,6 +217,10 @@ export function summarizeMoodFromPosts(posts = []) {
     return reactionSummary;
   }
 
+  if (!allowPrediction) {
+    return reactionSummary;
+  }
+
   const predictedSummary = finalizeMoodSummary(predictedBreakdown, predictedLatestByMood, {
     minTotal: 1,
     minShare: PREDICTION_PUBLIC_THRESHOLD,
@@ -242,7 +248,7 @@ export function normalizeCityMoodResult(row) {
   return {
     mood,
     label: formatMoodLabel(mood),
-    emoji: row.emoji || getMoodEmoji(mood),
+    emoji: getMoodEmoji(mood),
     total,
     breakdown,
     confidence: summary.confidence,

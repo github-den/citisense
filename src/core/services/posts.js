@@ -21,6 +21,35 @@ async function getCurrentUserId() {
   return user?.id ?? null;
 }
 
+async function tryPersistReaction(postId, userId, emoji) {
+  if (!supabase || !postId || !userId) return { data: null, error: null };
+
+  const clearResult = await supabase
+    .from('reactions')
+    .delete()
+    .eq('post_id', postId)
+    .eq('user_id', userId);
+
+  if (clearResult.error) return clearResult;
+  if (!emoji) return { ...clearResult, data: { fallback: 'table', removed: true } };
+
+  const payload = {
+    post_id: postId,
+    user_id: userId,
+    emoji,
+    updated_at: new Date().toISOString(),
+  };
+
+  const insertResult = await supabase
+    .from('reactions')
+    .insert(payload)
+    .select('post_id, emoji')
+    .maybeSingle();
+
+  if (!insertResult.error) return { ...insertResult, data: { ...(insertResult.data ?? {}), fallback: 'table' } };
+  return insertResult;
+}
+
 async function tryInsertBookmark(postId, userId) {
   if (!supabase || !postId || !userId) return { data: null, error: null };
 
@@ -222,7 +251,18 @@ export const unraisePost = async (postId, passedUserId = null) => {
     return { error: err };
   }
 };
-export const reactPost     = (postId, emoji) => rpc('react_post', { p_post_id: postId, p_emoji: emoji });
+export const reactPost = async (postId, emoji) => {
+  if (!supabase || !postId) return { data: null, error: null };
+
+  const rpcResult = await rpc('react_post', { p_post_id: postId, p_emoji: emoji });
+  if (!rpcResult.error) return rpcResult;
+  if (!isMissingRpcFunction(rpcResult.error, 'react_post')) return rpcResult;
+
+  const userId = await getCurrentUserId();
+  if (!userId) return { data: null, error: new Error('User not authenticated') };
+
+  return tryPersistReaction(postId, userId, emoji);
+};
 export const bookmarkPost  = async (postId) => {
   if (!supabase || !postId) return { data: { localOnly: true }, error: null };
 

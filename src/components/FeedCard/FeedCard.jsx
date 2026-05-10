@@ -48,7 +48,7 @@ const TYPE_META = {
 };
 
 const REACTIONS = [
-  { emoji: '\u{2764}\u{FE0F}', label: 'Grateful' },
+  { emoji: '\u{1F970}', label: 'Grateful' },
   { emoji: '\u{1F642}', label: 'Satisfied' },
   { emoji: '\u{1F622}', label: 'Sad' },
   { emoji: '\u{1F621}', label: 'Angry' },
@@ -494,8 +494,8 @@ const FeedCard = forwardRef(({
 
   function handleMainReactClick(e) {
     e.stopPropagation();
-    // Default to Grateful (❤️) if no reaction, otherwise remove current
-    const defaultEmoji = '\u{2764}\u{FE0F}';
+    // Default to Grateful (same as the first feed reaction) if no reaction, otherwise remove current
+    const defaultEmoji = '\u{1F970}';
     if (reaction) {
       pickReaction(reaction);
     } else {

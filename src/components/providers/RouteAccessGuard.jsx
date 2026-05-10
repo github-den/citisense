@@ -43,7 +43,7 @@ export default function RouteAccessGuard() {
       return;
     }
 
-    if (needsSetup && session && normalizedPath !== '/setup' && !(normalizedPath === '/admin' || normalizedPath.startsWith('/admin/'))) {
+    if (needsSetup && session && normalizedPath !== '/setup') {
       if (isGoogleAuthHandoff) return;
       if (isEmailSignupFlow && (modalOpen || isEmailSignupRoute)) return;
       router.replace('/setup');
