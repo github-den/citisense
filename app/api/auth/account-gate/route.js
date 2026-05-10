@@ -24,6 +24,10 @@ function isAdminRole(role) {
   return ADMIN_ROLES.has(normalizeRole(role));
 }
 
+function isEmailConfirmed(user) {
+  return Boolean(user?.email_confirmed_at || user?.confirmed_at);
+}
+
 function getLinkedProviders(user) {
   const appProviders = Array.isArray(user?.app_metadata?.providers) ? user.app_metadata.providers : [];
   const identityProviders = Array.isArray(user?.identities)
@@ -110,7 +114,9 @@ function buildEmailLoginDecision(matches) {
     return reject('Admin accounts must sign in through the admin workspace.');
   }
 
-  const hasEmailAccount = matches.some(match => match.method === AUTH_METHOD_EMAIL);
+  const emailMatches = matches.filter(match => match.method === AUTH_METHOD_EMAIL);
+  const hasEmailAccount = emailMatches.some(match => match.emailConfirmed);
+  const hasPendingEmailAccount = emailMatches.some(match => !match.emailConfirmed);
   const hasGoogleAccount = matches.some(match => match.method === AUTH_METHOD_GOOGLE);
 
   if (!matches.length) {
@@ -119,6 +125,10 @@ function buildEmailLoginDecision(matches) {
 
   if (!hasEmailAccount && hasGoogleAccount) {
     return reject('This account is registered using Google. Please continue with Google instead.');
+  }
+
+  if (!hasEmailAccount && hasPendingEmailAccount) {
+    return reject('Finish your sign up by verifying the OTP. You can request a new code if needed.', 'create');
   }
 
   return allow();
@@ -133,7 +143,7 @@ function buildEmailSignupDecision(matches) {
     return reject('This account is registered using Google. Please continue with Google instead.');
   }
 
-  if (matches.some(match => match.method === AUTH_METHOD_EMAIL)) {
+  if (matches.some(match => match.method === AUTH_METHOD_EMAIL && match.emailConfirmed)) {
     return reject('This account is already registered. Please log in instead.');
   }
 
@@ -233,6 +243,7 @@ export async function POST(request) {
       method: getPrimaryAuthMethod(user),
       role: getUserRole(user),
       isAdmin: isAdminRole(getUserRole(user)),
+      emailConfirmed: isEmailConfirmed(user),
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at,
       user_metadata: user.user_metadata ?? {},

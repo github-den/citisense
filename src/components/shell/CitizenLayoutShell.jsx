@@ -9,6 +9,7 @@ import TopHeader from '../TopHeader/TopHeader.jsx';
 import DiscussionModal from '../DiscussionModal/DiscussionModal.jsx';
 import { useAuth } from '@core/context/AuthContext.jsx';
 import { routes } from '@core/lib/navigation/routes.js';
+import { OUTSIDE_URDANETA } from '@/constants/index.js';
 import styles from '../../App.module.css';
 
 function buildSearchHref(query) {
@@ -28,7 +29,7 @@ export default function CitizenLayoutShell({
   ...asideProps
 }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, session } = useAuth();
   const searchQueryRef = useRef('');
   const [setupDraft, setSetupDraft] = useState(null);
   const [discussionPost, setDiscussionPost] = useState(null);
@@ -49,10 +50,15 @@ export default function CitizenLayoutShell({
         { value: 'forYou', label: 'For You', onClick: () => { window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader')); router.push(routes.feed); } },
       ];
       
+      const userBarangay = session?.user?.user_metadata?.barangay;
+      const showBarangayTab = isAuthenticated && userBarangay && userBarangay !== OUTSIDE_URDANETA;
+
       if (isAuthenticated) {
         items.push(
           { value: 'following', label: 'Following', onClick: () => { window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader')); router.push(routes.homeFollowing); } },
-          { value: 'barangay', label: 'Your barangay', onClick: () => { window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader')); router.push(routes.homeBarangay); } }
+          ...(showBarangayTab
+            ? [{ value: 'barangay', label: 'Your barangay', onClick: () => { window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader')); router.push(routes.homeBarangay); } }]
+            : [])
         );
       }
       
@@ -61,7 +67,7 @@ export default function CitizenLayoutShell({
 
 
     return [];
-  }, [routeKey, router, secondHeader, isAuthenticated]);
+  }, [routeKey, router, secondHeader, isAuthenticated, session?.user?.user_metadata?.barangay]);
 
   function setSearchQuery(next) {
     searchQueryRef.current = String(next ?? '');

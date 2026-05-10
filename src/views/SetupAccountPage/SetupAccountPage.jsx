@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { UserCircle, WarningCircle, MapPin, At } from '@phosphor-icons/react';
 import { supabase } from '@core/lib/supabase.js';
 import { useAuth } from '@core/context/AuthContext.jsx';
-import { URDANETA_BARANGAYS } from '../../constants/index.js';
+import { OUTSIDE_URDANETA, URDANETA_BARANGAYS } from '../../constants/index.js';
 import PageSectionHeader from '../../components/ui/PageSectionHeader.jsx';
 import SearchFilterSelect from '../../components/ui/SearchFilterSelect.jsx';
 import styles from './SetupAccountPage.module.css';
@@ -20,7 +20,11 @@ const AVATARS = [
   { id: 'avatar_8', src: '/avatars/avatar_8.png', label: 'Finder' },
 ];
 
-const BARANGAY_OPTIONS = URDANETA_BARANGAYS.map(b => ({ value: b, label: b }));
+const BARANGAY_OPTIONS = [
+  { value: OUTSIDE_URDANETA, label: OUTSIDE_URDANETA },
+  ...URDANETA_BARANGAYS.map(b => ({ value: b, label: b })),
+];
+const BARANGAY_LABELS = BARANGAY_OPTIONS.map(option => option.label);
 
 export default function SetupAccountPage() {
   const { handleCompleteSetup, session } = useAuth();
@@ -47,12 +51,12 @@ export default function SetupAccountPage() {
   // Barangay Validators (Real-time based on query or selection)
   const isBarangayTyping = barangayQuery.trim().length > 0;
   // If typing, check if any option matches partially. If no match found at all, it's invalid.
-  const hasAnyMatch = URDANETA_BARANGAYS.some(b => b.toLowerCase().includes(barangayQuery.toLowerCase().trim()));
-  const isInvalidBarangay = isBarangayTyping && (!hasAnyMatch || (barangayQuery.trim() !== barangay && !URDANETA_BARANGAYS.includes(barangayQuery.trim())));
+  const hasAnyMatch = BARANGAY_LABELS.some(b => b.toLowerCase().includes(barangayQuery.toLowerCase().trim()));
+  const isInvalidBarangay = isBarangayTyping && (!hasAnyMatch || (barangayQuery.trim() !== barangay && !BARANGAY_LABELS.includes(barangayQuery.trim())));
   
   // Final valid state for submission
   const isEmptyBarangay = !barangay || barangay.trim().length === 0;
-  const barangayValid = !isEmptyBarangay && URDANETA_BARANGAYS.includes(barangay);
+  const barangayValid = !isEmptyBarangay && (barangay === OUTSIDE_URDANETA || URDANETA_BARANGAYS.includes(barangay));
 
   useEffect(() => {
     if (!supabase || !usernameValid) {
@@ -101,7 +105,7 @@ export default function SetupAccountPage() {
     if (isEmptyBarangay && showErrors) return 'Barangay is required.';
     // Trigger if typing but no matches found, or if text doesn't match a real barangay
     if (isBarangayTyping && !hasAnyMatch) return 'No match found in Urdaneta.';
-    if (isBarangayTyping && barangayQuery.trim() !== barangay && !URDANETA_BARANGAYS.includes(barangayQuery.trim())) {
+    if (isBarangayTyping && barangayQuery.trim() !== barangay && !BARANGAY_LABELS.includes(barangayQuery.trim())) {
         // We only show "Select a valid" if they stopped typing and it's not a match
         // But the user wants it with "user type". So if no match, show it.
     }

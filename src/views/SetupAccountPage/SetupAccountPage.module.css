@@ -92,6 +92,7 @@
 
 .column:last-child {
   padding-left: 32px;
+  margin-top: 8px;
 }
 
 .section {

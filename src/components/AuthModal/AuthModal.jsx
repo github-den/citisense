@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, EnvelopeSimple, Eye, EyeSlash, LockKey, X } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@core/context/AuthContext.jsx';
@@ -15,6 +15,41 @@ function GoogleIcon() {
       <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332Z" fill="#FBBC05"/>
       <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58Z" fill="#EA4335"/>
     </svg>
+  );
+}
+
+function ModalHeader({ onClose }) {
+  return (
+    <div className={styles.header}>
+      <div className={styles.brandLockup}>
+        <div className={styles.brandMark}>citisense</div>
+        <div className={styles.brandSub}>Citizen Feedback Platform</div>
+      </div>
+      <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
+        <X size={18} weight="bold" />
+      </button>
+    </div>
+  );
+}
+
+function SplitModal({ children, className = '' }) {
+  return (
+    <div
+      className={`${styles.modal} ${styles.splitModal} ${className}`.trim()}
+      onMouseDown={e => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <aside className={styles.meshPanel} aria-hidden="true">
+        <p className={styles.meshText}>
+          <span className={styles.meshLine}>Speak up.</span>
+          <span className={`${styles.meshLine} ${styles.meshLineNowrap}`}>Shape your city.</span>
+        </p>
+      </aside>
+      <section className={styles.modalContentPane}>
+        {children}
+      </section>
+    </div>
   );
 }
 
@@ -43,6 +78,10 @@ export default function AuthModal() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const otpRefs = useRef([]);
 
   const isCreate = tab === 'create';
 
@@ -59,6 +98,7 @@ export default function AuthModal() {
       setAcceptedTerms(false);
       setError(modalMessage ?? '');
       setBusy(false);
+      setGoogleBusy(false);
     }
   }, [modalMessage, modalOpen, modalTab]);
 
@@ -73,14 +113,12 @@ export default function AuthModal() {
   useEffect(() => {
     if (!modalOpen) return undefined;
 
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
 
     return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.removeProperty('overflow');
+      document.documentElement.style.removeProperty('overflow');
     };
   }, [modalOpen]);
 
@@ -93,6 +131,27 @@ export default function AuthModal() {
 
     return () => window.clearInterval(timer);
   }, [otpSecondsLeft, view]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+
+    if (view === 'otp') {
+      otpRefs.current[0]?.focus();
+      return;
+    }
+
+    if (view === 'forgot' || view === 'forgotSent') {
+      emailRef.current?.focus();
+      return;
+    }
+
+    if (tab === 'login') {
+      emailRef.current?.focus();
+      return;
+    }
+
+    emailRef.current?.focus();
+  }, [modalOpen, tab, view]);
 
   if (!modalOpen) return null;
 
@@ -192,7 +251,7 @@ export default function AuthModal() {
       return;
     }
 
-    setBusy(true);
+    setGoogleBusy(true);
     try {
       await handleGoogleSignIn({
         intent: isCreate ? 'signup' : 'login',
@@ -200,7 +259,7 @@ export default function AuthModal() {
       });
     } catch (err) {
       setError(err.message ?? 'Unable to continue with Google.');
-      setBusy(false);
+      setGoogleBusy(false);
     }
   }
 
@@ -254,42 +313,12 @@ export default function AuthModal() {
     return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
   }
 
-  function ModalHeader() {
-    return (
-      <div className={styles.header}>
-        <div className={styles.brandLockup}>
-          <div className={styles.brandMark}>citisense</div>
-          <div className={styles.brandSub}>Citizen Feedback Platform</div>
-        </div>
-        <button className={styles.closeBtn} onClick={closeModal} aria-label="Close">
-          <X size={18} weight="bold" />
-        </button>
-      </div>
-    );
-  }
-
-  function SplitModal({ children, className = '' }) {
-    return (
-      <div className={`${styles.modal} ${styles.splitModal} ${className}`.trim()} onMouseDown={e => e.stopPropagation()} role="dialog" aria-modal="true">
-        <aside className={styles.meshPanel} aria-hidden="true">
-          <p className={styles.meshText}>
-            <span className={styles.meshLine}>Speak up.</span>
-            <span className={`${styles.meshLine} ${styles.meshLineNowrap}`}>Shape your city.</span>
-          </p>
-        </aside>
-        <section className={styles.modalContentPane}>
-          {children}
-        </section>
-      </div>
-    );
-  }
-
   if (legalView) {
     const isTerms = legalView === 'terms';
     return (
       <div className={styles.overlay} onMouseDown={closeModal}>
         <div className={`${styles.modal} ${styles.legalModal}`} onMouseDown={e => e.stopPropagation()} role="dialog" aria-modal="true">
-          <ModalHeader />
+          <ModalHeader onClose={closeModal} />
 
           <button className={styles.backBtn} onClick={() => setLegalView(null)}>
             <ArrowLeft size={16} weight="bold" />
@@ -354,12 +383,14 @@ export default function AuthModal() {
     return (
       <div className={styles.overlay} onMouseDown={closeModal}>
         <SplitModal>
-          <ModalHeader />
+          <ModalHeader onClose={closeModal} />
 
-          <button className={styles.backBtn} onClick={() => { setView('main'); setError(''); }}>
-            <ArrowLeft size={16} weight="bold" />
-            <span>Back to login</span>
-          </button>
+          <div className={styles.backRow}>
+            <button className={styles.iconBackBtn} onClick={() => { setView('main'); setError(''); }} aria-label="Back to login">
+              <ArrowLeft size={16} weight="bold" />
+            </button>
+            <h2 className={styles.pageTitle}>Reset your password</h2>
+          </div>
 
           {view === 'forgotSent' ? (
             <div className={styles.forgotSent}>
@@ -373,7 +404,6 @@ export default function AuthModal() {
             </div>
           ) : (
             <>
-              <p className={styles.forgotHeading}>Reset your password</p>
               <p className={styles.forgotSub}>Enter your account email and we'll send a secure reset link.</p>
               <form className={styles.form} onSubmit={submitForgot}>
                 <label className={styles.fieldGroup}>
@@ -386,8 +416,8 @@ export default function AuthModal() {
                       placeholder="you@example.com"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
+                      ref={emailRef}
                       required
-                      autoFocus
                     />
                   </span>
                 </label>
@@ -407,15 +437,20 @@ export default function AuthModal() {
     return (
       <div className={styles.overlay} onMouseDown={closeModal}>
         <SplitModal>
-          <ModalHeader />
+          <ModalHeader onClose={closeModal} />
 
-          <button className={styles.backBtn} onClick={() => { setView('main'); setError(''); setOtpCode(Array(6).fill('')); }}>
-            <ArrowLeft size={16} weight="bold" />
-            <span>Back to sign up</span>
-          </button>
+          <div className={styles.backRow}>
+            <button
+              className={styles.iconBackBtn}
+              onClick={() => { setView('main'); setError(''); setOtpCode(Array(6).fill('')); }}
+              aria-label="Back to sign up"
+            >
+              <ArrowLeft size={16} weight="bold" />
+            </button>
+            <h2 className={styles.pageTitle}>Verify your email</h2>
+          </div>
 
           <div className={styles.otpIntro}>
-            <p className={styles.forgotHeading}>Verify your email</p>
             <p className={styles.forgotSub}>
               Enter the 6-digit code sent to <strong>{email}</strong>.
             </p>
@@ -439,7 +474,9 @@ export default function AuthModal() {
                     onChange={e => updateOtpDigit(index, e.target.value)}
                     onKeyDown={e => handleOtpKeyDown(index, e)}
                     onPaste={e => handleOtpPaste(index, e)}
-                    autoFocus={index === 0}
+                    ref={node => {
+                      otpRefs.current[index] = node;
+                    }}
                     required
                   />
                 ))}
@@ -464,7 +501,7 @@ export default function AuthModal() {
   return (
     <div className={styles.overlay} onMouseDown={closeModal}>
       <SplitModal>
-        <ModalHeader />
+        <ModalHeader onClose={closeModal} />
 
 
 
@@ -488,7 +525,7 @@ export default function AuthModal() {
                 placeholder={tab === 'login' ? 'Enter email or username' : 'citisense@email.com'}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                autoFocus={tab === 'login'}
+                ref={emailRef}
                 required
               />
             </span>
@@ -529,6 +566,7 @@ export default function AuthModal() {
                   placeholder={isCreate ? 'Create a strong password' : 'Enter your password'}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
+                  ref={passwordRef}
                   required
                 />
                 <button type="button" className={styles.revealBtn} onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
@@ -553,10 +591,10 @@ export default function AuthModal() {
           className={styles.googleBtn}
           type="button"
           onClick={submitGoogle}
-          disabled={busy}
+          disabled={googleBusy}
         >
           <GoogleIcon />
-          <span>{busy ? 'Connecting to Google...' : 'Continue with Google'}</span>
+          <span>{googleBusy ? 'Connecting to Google...' : 'Continue with Google'}</span>
         </button>
 
         <div className={styles.divider}><span>or</span></div>

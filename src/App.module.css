@@ -134,6 +134,7 @@
   width: 100%;
   min-width: 0;
   min-height: 100vh;
+  margin-top: calc(-1 * var(--shell-top-gap));
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(248, 251, 255, 0.64));
   border: 1px solid rgba(216, 227, 240, 0.88);
   border-radius: 24px;

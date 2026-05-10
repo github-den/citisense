@@ -63,6 +63,8 @@ export const URDANETA_BARANGAYS = [
   'Tulong',
 ];
 
+export const OUTSIDE_URDANETA = 'Outside Urdaneta';
+
 export const SERVICE_CATEGORY_OFFICES = {
   Health: 'City Health Office',
   Infrastructure: 'City Engineers Office',
