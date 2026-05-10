@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, CaretRight } from '@phosphor-icons/react';
+import { Archive, CaretRight, SmileyWink } from '@phosphor-icons/react';
 import { useCityMood } from '@core/hooks/useCityMood.js';
 import { useTopicFeedboxes } from '@core/hooks/useTopicFeedboxes.js';
 import { getMoodLabel } from './shared.jsx';
@@ -79,9 +79,18 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
   return (
     <>
       <section className={styles.moodCard}>
+        <div className={styles.widgetTitle}>
+          <SmileyWink size={18} weight="fill" color="var(--ui-accent)" /> City mood
+          <button
+            className={styles.widgetSeeMore}
+            onClick={() => setPage('cityPerformance')}
+            type="button"
+          >
+            See more
+          </button>
+        </div>
         <div className={styles.moodTop}>
           <div>
-            <div className={styles.moodEyebrow}>City mood</div>
             <div className={`${styles.moodTitle} ${!cityMoodLabel ? styles.moodTitleEmpty : ''}`}>
               <span>{cityMoodLabel || 'No mood data yet'}</span>
             </div>
@@ -91,14 +100,6 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
           </div>
           <span className={styles.moodEmoji} aria-hidden>{cityMood?.emoji || '\u{1F636}'}</span>
         </div>
-
-        <button
-          className={styles.moodBtn}
-          onClick={() => setPage('cityPerformance')}
-          type="button"
-        >
-          See more
-        </button>
       </section>
 
       <div className={`${styles.widget} ${styles.listWidget}`}>

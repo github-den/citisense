@@ -127,15 +127,6 @@ export default function TopHeader({ page, secondHeader, setPage, setSearchQuery 
             >
               LGU Performance
             </button>
-
-            <button
-              type="button"
-              className={[styles.navItem, page === 'charter' ? styles.navItemActive : ''].filter(Boolean).join(' ')}
-              onClick={() => setPage('charter')}
-              aria-current={page === 'charter' ? 'page' : undefined}
-            >
-              Citizen Charter
-            </button>
           </nav>
           ) : null}
         </div>

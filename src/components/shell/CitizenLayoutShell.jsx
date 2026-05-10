@@ -100,11 +100,6 @@ export default function CitizenLayoutShell({
       case 'lgu-performance':
         router.push(routes.lgu);
         break;
-      case 'cityCharter':
-      case 'citizen-charter':
-      case 'charter':
-        router.push(routes.charter);
-        break;
       case 'profile':
         router.push(routes.profile);
         break;

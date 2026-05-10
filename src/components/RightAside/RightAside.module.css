@@ -43,6 +43,7 @@
   font: inherit;
   cursor: pointer;
   transition: color 0.12s var(--ease-out);
+  text-decoration: none;
 }
 
 .footerLink:hover {

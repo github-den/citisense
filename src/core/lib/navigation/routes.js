@@ -10,8 +10,6 @@ export const routes = {
   yourCity: '/city',
   lgu: '/lgu',
   lguPerformance: '/lgu',
-  charter: '/charter',
-  citizenCharter: '/charter',
   profile: '/profile',
   profileTimeline: '/profile/timeline',
   profileActivityLog: '/profile/activity-log',
@@ -39,6 +37,5 @@ export function discussRoute(id) {
 }
 
 export function yourCityTabRoute(tab) {
-  if (tab === 'citizen-charter' || tab === 'charter') return routes.charter;
   return routes.lgu;
 }

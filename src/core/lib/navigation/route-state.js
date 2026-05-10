@@ -5,6 +5,5 @@ export function getSearchParam(searchParams, key, fallback = '') {
 
 export function normalizeCityTab(value) {
   if (value === 'lgu-performance') return 'lgu-performance';
-  if (value === 'citizen-charter') return 'citizen-charter';
   return 'lgu-performance';
 }

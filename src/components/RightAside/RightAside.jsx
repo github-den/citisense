@@ -63,7 +63,14 @@ export default function RightAside(props) {
           <span className={styles.footerSep}>&nbsp;&nbsp;&nbsp;</span>
           <button type="button" className={styles.footerLink}>User Agreement</button>
           <span className={styles.footerSep}>&nbsp;&nbsp;&nbsp;</span>
-          <button type="button" className={styles.footerLink}>About CitiSense</button>
+          <a
+            className={styles.footerLink}
+            href="/citizens-charter.pdf"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Citizen's Charter
+          </a>
         </div>
       </footer>
     </aside>
