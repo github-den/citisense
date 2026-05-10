@@ -21,6 +21,12 @@ async function getCurrentUserId() {
   return user?.id ?? null;
 }
 
+async function getAccessToken() {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
 async function tryPersistReaction(postId, userId, emoji) {
   if (!supabase || !postId || !userId) return { data: null, error: null };
 
@@ -399,46 +405,38 @@ export async function createFeedbackPost({ userId, content, type, service, locat
 
   if (!supabase) return { data: null, error: new Error('Supabase is not configured.') };
 
-  const modernPayload = {
-    user_id: userId || null,
-    caption: content || '',
-    type: type || null,
-    service: service || null,
-    incident_location: location || barangay || 'Unknown',
-    image_url: imageUrl || null,
-    image_urls: imageUrls || [],
-  };
-
   try {
-    const result = await supabase
-      .from('feedbacks')
-      .insert(modernPayload)
-      .select('id, feedback_no')
-      .single();
-
-    if (!result.error) return result;
-
-    const message = result.error.message?.toLowerCase() ?? '';
-    // If it's a legacy schema error, try the fallback with more column variations
-    if (message.includes('author_id') || message.includes('category') || message.includes('caption') || message.includes('incident_location')) {
-      const fallbackResult = await supabase
-        .from('feedbacks')
-        .insert({
-          user_id: userId || null,
-          caption: content || '',
-          type: type || null,
-          category: type || null,
-          service: service || null,
-          incident_location: location || barangay || 'Unknown',
-          image_urls: imageUrls || [],
-        })
-        .select('id, feedback_no')
-        .single();
-
-      return fallbackResult;
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      return { data: null, error: new Error('User not authenticated') };
     }
 
-    return result;
+    const response = await fetch('/api/feedbacks', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        userId,
+        content,
+        type,
+        service,
+        location,
+        barangay,
+        evidenceNote,
+        imageUrl,
+        imageUrls,
+        flags,
+      }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { data: null, error: new Error(payload?.error ?? 'Submission failed.') };
+    }
+
+    return { data: payload, error: null };
   } catch (err) {
     return { data: null, error: err };
   }

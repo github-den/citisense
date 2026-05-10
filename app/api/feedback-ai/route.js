@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createStructuredResponse } from '@/server/openaiStructured.js';
+import { predictFeedbackMood } from '@/server/moodPredictor.js';
+
+export const runtime = 'nodejs';
 
 const contentFlagsSchema = {
   type: 'object',
@@ -12,30 +15,6 @@ const contentFlagsSchema = {
     tips: { type: 'array', items: { type: 'string' } },
   },
 };
-
-const moodPredictionSchema = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['mood', 'confidence', 'rationale'],
-  properties: {
-    mood: {
-      type: 'string',
-      enum: ['grateful', 'satisfied', 'sad', 'angry'],
-    },
-    confidence: {
-      type: 'number',
-    },
-    rationale: {
-      type: 'string',
-    },
-  },
-};
-
-function clampConfidence(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return 0;
-  return Math.max(0, Math.min(1, numeric));
-}
 
 export async function POST(request) {
   const body = await request.json();
@@ -74,36 +53,26 @@ export async function POST(request) {
   }
 
   if (body.task === 'mood_prediction') {
-    const result = await createStructuredResponse({
-      name: 'feedback_mood_prediction',
-      schema: moodPredictionSchema,
-      instructions: [
-        'You classify one civic feedback text into exactly one of these four moods: grateful, satisfied, sad, angry.',
-        'Do not output any mood outside those four labels.',
-        'Base the classification on the writer tone and intent in the feedback text.',
-        'Use grateful for strong appreciation or thanks.',
-        'Use satisfied for calm positive or constructive approval.',
-        'Use sad for disappointment, discouragement, or concern without strong hostility.',
-        'Use angry for frustration, outrage, harsh blame, or strong hostility.',
-        'Return confidence as a number from 0 to 1.',
-        'Keep rationale short and specific.',
-      ].join(' '),
-      input: JSON.stringify({
-        type: body.type,
-        service: body.service,
-        barangay: body.barangay,
-        content: body.content,
-      }),
-    });
+    try {
+      const prediction = await predictFeedbackMood(body.content);
 
-    if (result.error) return NextResponse.json({ error: result.error }, { status: result.status });
-
-    return NextResponse.json({
-      mood: result.data.mood,
-      confidence: clampConfidence(result.data.confidence),
-      rationale: result.data.rationale ?? '',
-      source: 'ai_structured_fallback',
-    });
+      return NextResponse.json({
+        mood: prediction.isPublic ? prediction.mood : null,
+        confidence: prediction.confidence,
+        rationale: prediction.isPublic
+          ? 'Predicted by the local xlm-roberta-base-round1 checkpoint.'
+          : 'Prediction is below the public confidence threshold.',
+        source: 'xlm-roberta-base-round1',
+        raw_mood: prediction.mood,
+        is_public: prediction.isPublic,
+        prediction_model_version: prediction.modelVersion,
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error?.message ?? 'Mood prediction failed.' },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json({ error: 'Unsupported AI task.' }, { status: 400 });

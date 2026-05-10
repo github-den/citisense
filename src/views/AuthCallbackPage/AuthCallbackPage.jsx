@@ -13,6 +13,7 @@ import {
   signOut,
   validateGoogleCallbackAccount,
 } from '@core/services/auth.js';
+import { isAdminRole } from '@core/lib/auth/roles.js';
 import { useAuth } from '@core/context/AuthContext.jsx';
 import styles from './AuthCallbackPage.module.css';
 
@@ -73,6 +74,17 @@ export default function AuthCallbackPage() {
       const session = await waitForSession();
       if (!session?.user) {
         throw new Error('Google sign-in did not finish correctly. Please try again.');
+      }
+      if (isAdminRole(session)) {
+        await signOut();
+        clearPendingGoogleAuthFlow();
+        queueAuthModalFlash({
+          tab: 'login',
+          message: 'Admin accounts must sign in through the admin workspace.',
+        });
+        openModal('login', 'Admin accounts must sign in through the admin workspace.');
+        router.replace('/');
+        return;
       }
 
       const pendingGoogleAuth = getPendingGoogleAuthState();

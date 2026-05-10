@@ -165,11 +165,22 @@ export function AuthProvider({ children }) {
 
     withTimeout(getSession().catch(() => null), null).then(session => {
       if (!mounted) return;
+      if (session && isAdminRole(session)) {
+        signOut().catch(() => {});
+        dispatch({ type: 'SET_SESSION', session: null });
+        return;
+      }
       dispatch({ type: 'SET_SESSION', session });
     });
 
     const unsub = onAuthStateChange(session => {
       if (!mounted) return;
+      if (session && isAdminRole(session)) {
+        signOut().catch(() => {});
+        dispatch({ type: 'SET_SESSION', session: null });
+        dispatch({ type: 'COMPLETE_SETUP' });
+        return;
+      }
       dispatch({ type: 'SET_SESSION', session });
       if (!session) dispatch({ type: 'COMPLETE_SETUP' });
     });

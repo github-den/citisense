@@ -10,9 +10,18 @@ const INTENT_LOGIN = 'login';
 const INTENT_SIGNUP = 'signup';
 const GOOGLE_PROVISION_GRACE_MS = 5 * 60 * 1000;
 const GOOGLE_PROVISION_MATCH_WINDOW_MS = 60 * 1000;
+const ADMIN_ROLES = new Set(['super_admin', 'lgu_admin', 'barangay_admin', 'admin']);
 
 function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase();
+}
+
+function normalizeRole(role) {
+  return String(role ?? '').trim().toLowerCase();
+}
+
+function isAdminRole(role) {
+  return ADMIN_ROLES.has(normalizeRole(role));
 }
 
 function getLinkedProviders(user) {
@@ -35,6 +44,13 @@ function getPrimaryAuthMethod(user) {
   if (providers.includes(AUTH_METHOD_GOOGLE)) return AUTH_METHOD_GOOGLE;
   if (providers.includes(AUTH_METHOD_EMAIL)) return AUTH_METHOD_EMAIL;
   return null;
+}
+
+function getUserRole(user) {
+  return normalizeRole(
+    user?.user_metadata?.role
+    || user?.app_metadata?.role,
+  );
 }
 
 function isFreshGoogleProvision(user) {
@@ -90,6 +106,10 @@ function reject(message, tab = 'login', cleanupCurrentUser = false, currentUserI
 }
 
 function buildEmailLoginDecision(matches) {
+  if (matches.some(match => match.isAdmin)) {
+    return reject('Admin accounts must sign in through the admin workspace.');
+  }
+
   const hasEmailAccount = matches.some(match => match.method === AUTH_METHOD_EMAIL);
   const hasGoogleAccount = matches.some(match => match.method === AUTH_METHOD_GOOGLE);
 
@@ -105,6 +125,10 @@ function buildEmailLoginDecision(matches) {
 }
 
 function buildEmailSignupDecision(matches) {
+  if (matches.some(match => match.isAdmin)) {
+    return reject('Admin accounts must use the admin workspace. Citizen sign-up is not available for admin accounts.');
+  }
+
   if (matches.some(match => match.method === AUTH_METHOD_GOOGLE)) {
     return reject('This account is registered using Google. Please continue with Google instead.');
   }
@@ -121,6 +145,8 @@ function buildGoogleCallbackDecision(matches, currentUserId, intent) {
   const otherMatches = matches.filter(match => match.id !== currentUserId);
   const currentMethod = currentUser?.method ?? null;
   const currentIsFreshGoogle = isFreshGoogleProvision(currentUser);
+  const currentIsAdmin = currentUser?.isAdmin === true;
+  const hasOtherAdminAccount = otherMatches.some(match => match.isAdmin);
   const hasOtherEmailAccount = otherMatches.some(match => match.method === AUTH_METHOD_EMAIL);
   const hasOtherGoogleAccount = otherMatches.some(match => match.method === AUTH_METHOD_GOOGLE);
 
@@ -173,6 +199,15 @@ function buildGoogleCallbackDecision(matches, currentUserId, intent) {
     );
   }
 
+  if (currentIsAdmin || hasOtherAdminAccount) {
+    return reject(
+      'Admin accounts must sign in through the admin workspace.',
+      'login',
+      currentIsFreshGoogle,
+      currentUser.id,
+    );
+  }
+
   return allow();
 }
 
@@ -196,6 +231,8 @@ export async function POST(request) {
       id: user.id,
       email: normalizeEmail(user.email),
       method: getPrimaryAuthMethod(user),
+      role: getUserRole(user),
+      isAdmin: isAdminRole(getUserRole(user)),
       created_at: user.created_at,
       last_sign_in_at: user.last_sign_in_at,
       user_metadata: user.user_metadata ?? {},

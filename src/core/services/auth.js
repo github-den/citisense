@@ -1,4 +1,5 @@
 import { supabase } from '@core/lib/supabase.js';
+import { isAdminRole } from '@core/lib/auth/roles.js';
 
 const AUTH_METHOD_EMAIL = 'email';
 const AUTH_METHOD_GOOGLE = 'google';
@@ -259,7 +260,12 @@ export async function signIn(email, password) {
   if (!supabase) noClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) throw error;
-  return enrichSession(data.session);
+  const session = await enrichSession(data.session);
+  if (isAdminRole(session)) {
+    await signOut();
+    throw new Error('Admin accounts must sign in through the admin workspace.');
+  }
+  return session;
 }
 
 export async function signUp(email, password) {
