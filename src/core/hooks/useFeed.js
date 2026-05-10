@@ -164,15 +164,16 @@ async function hydrateRows(rows, currentUserId) {
   return rows.map(row => {
     const userId = row.user_id ?? row.author_id;
     const reactionSummary = reactionSummaryMap.get(row.id) ?? null;
+    const hasStrongReaction = reactionSummary?.isStrong === true;
     return {
       ...row,
       profiles: row.profiles ?? authorMap.get(userId) ?? null,
       raises_count: raiseCounts.has(row.id) ? raiseCounts.get(row.id) : (row.raises_count ?? 0),
       reacts_count: reactionSummary?.total ?? row.reacts_count ?? 0,
       reaction_breakdown: reactionSummary?.breakdown ?? row.reaction_breakdown ?? null,
-      final_mood: reactionSummary?.mood ?? row.final_mood ?? null,
-      mood_confidence: reactionSummary?.confidence ?? row.mood_confidence ?? 0,
-      mood_source: reactionSummary?.source ?? row.mood_source ?? 'none',
+      final_mood: hasStrongReaction ? reactionSummary?.mood : (row.final_mood ?? null),
+      mood_confidence: hasStrongReaction ? (reactionSummary?.confidence ?? 0) : (row.mood_confidence ?? 0),
+      mood_source: hasStrongReaction ? (reactionSummary?.source ?? 'reactions') : (row.mood_source ?? 'none'),
       reactionSummary,
       raisedByMe: raisedIds.has(row.id),
       followedByMe: followingIds.has(userId),

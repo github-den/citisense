@@ -14,6 +14,15 @@ const PYTHON_CANDIDATES = process.platform === 'win32'
   : ['python3', 'python'];
 const ALLOWED_MOODS = new Set(['grateful', 'satisfied', 'sad', 'angry']);
 
+function createEmptyMoodBreakdown() {
+  return {
+    grateful: 0,
+    satisfied: 0,
+    sad: 0,
+    angry: 0,
+  };
+}
+
 function clampConfidence(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 0;
@@ -43,14 +52,35 @@ function normalizeMood(value) {
   return ALLOWED_MOODS.has(mood) ? mood : null;
 }
 
+function normalizeBreakdown(value) {
+  const breakdown = createEmptyMoodBreakdown();
+  if (!value || typeof value !== 'object') return breakdown;
+
+  for (const mood of Object.keys(breakdown)) {
+    const numeric = Number(value[mood] ?? 0);
+    breakdown[mood] = Number.isFinite(numeric) ? Math.max(0, Math.min(1, numeric)) : 0;
+  }
+
+  const total = Object.values(breakdown).reduce((sum, amount) => sum + amount, 0);
+  if (total <= 0) return breakdown;
+
+  for (const mood of Object.keys(breakdown)) {
+    breakdown[mood] = Number((breakdown[mood] / total).toFixed(6));
+  }
+
+  return breakdown;
+}
+
 function normalizePrediction(rawPrediction) {
   const mood = normalizeMood(rawPrediction?.mood);
   const confidence = clampConfidence(rawPrediction?.confidence);
   const modelVersion = String(rawPrediction?.model_version ?? MODEL_VERSION).trim() || MODEL_VERSION;
+  const breakdown = normalizeBreakdown(rawPrediction?.breakdown);
 
   return {
     mood,
     confidence,
+    breakdown,
     modelVersion,
     isPublic: Boolean(mood) && confidence >= PUBLIC_CONFIDENCE_THRESHOLD,
   };
@@ -61,6 +91,7 @@ export function toFeedbackPredictionColumns(prediction) {
     return {
       predicted_mood: null,
       predicted_mood_confidence: null,
+      predicted_mood_breakdown: null,
       prediction_model_version: null,
     };
   }
@@ -68,6 +99,7 @@ export function toFeedbackPredictionColumns(prediction) {
   return {
     predicted_mood: prediction.mood,
     predicted_mood_confidence: prediction.confidence,
+    predicted_mood_breakdown: prediction.breakdown,
     prediction_model_version: prediction.modelVersion,
   };
 }
@@ -78,6 +110,7 @@ export async function predictFeedbackMood(text) {
     return {
       mood: null,
       confidence: 0,
+      breakdown: createEmptyMoodBreakdown(),
       modelVersion: MODEL_VERSION,
       isPublic: false,
     };
