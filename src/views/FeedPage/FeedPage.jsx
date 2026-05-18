@@ -67,6 +67,7 @@ export default function FeedPage({ feedTab = 'forYou', onReady }) {
         <>
           {isAuthenticated && feedTab === 'forYou' && (
             <PostPromptCard
+              className={styles.promptCard}
               avatarBg={avatarBg}
               avatarInitials={avatarInitials}
               avatarIsImage={avatarIsImage}

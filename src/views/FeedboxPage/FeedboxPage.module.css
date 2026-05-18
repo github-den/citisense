@@ -188,6 +188,32 @@
   gap: 16px;
 }
 
+.sectionStack {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.groupSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.groupSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.groupSectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ui-text);
+  letter-spacing: -0.01em;
+}
+
 .feedboxCard {
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -208,8 +234,8 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 20px;
-  min-height: 180px;
+  gap: 18px;
+  min-height: 170px;
   text-align: left;
   background: transparent;
   border: none;
@@ -239,55 +265,10 @@
   min-height: 140px;
 }
 
-.cardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.cardLeft {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.boxIcon {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--ui-bg);
-  color: var(--ui-text-muted);
-  display: grid;
-  place-items: center;
-}
-
-.metricCount {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--ui-text);
-  letter-spacing: -0.04em;
-}
-
-.cardRight {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ratingValue {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--ui-text);
-}
-
-.starWrap {
-  color: #fbbf24;
-}
-
 .cardBody {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .feedboxTagRow {
@@ -334,10 +315,32 @@
 }
 
 .cardSub {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   font-size: 13px;
   font-weight: 600;
   color: var(--ui-text-muted);
   margin: 0;
+  line-height: 1.45;
+}
+
+.cardDetailIcon {
+  color: var(--ui-accent);
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.cardMeta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ui-text-muted);
 }
 
 /* POPOVER */

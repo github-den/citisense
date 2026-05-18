@@ -13,6 +13,7 @@ function mapDiscussion(row) {
     id: row.id,
     postId: row.post_id,
     userId: row.user_id,
+    sourceTable: row.source_table ?? row.sourceTable ?? 'discussions',
     parentId: row.parent_id,
     body: row.body ?? row.content,
     imageUrl: row.image_url,
@@ -107,8 +108,8 @@ export function useDiscussions(postId, refreshKey = 0) {
           .limit(120);
 
         if (!flatErr) {
-          const hydrated = await hydrateRows(flat ?? []);
-          setRows(hydrated);
+        const hydrated = await hydrateRows(flat ?? []);
+          setRows(hydrated.map((row) => ({ ...row, source_table: 'discussions' })));
           setLoading(false);
           return;
         }
@@ -124,7 +125,7 @@ export function useDiscussions(postId, refreshKey = 0) {
         if (legacyErr) setError(legacyErr);
         else {
           const hydrated = await hydrateRows(legacy ?? []);
-          setRows(hydrated);
+          setRows(hydrated.map((row) => ({ ...row, source_table: 'comments' })));
         }
         setLoading(false);
       });

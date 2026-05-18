@@ -19,7 +19,7 @@ export default function FeedboxAside() {
         <div className={styles.charterSummaryGrid}>
           <div className={styles.charterSummaryItem}>
             <strong>{topics?.length ?? 0}</strong>
-            <span>Active topic feedboxes currently visible.</span>
+            <span>Active trending topics tracked right now.</span>
           </div>
           <div className={styles.charterSummaryItem}>
             <strong>{totalFeedback}</strong>

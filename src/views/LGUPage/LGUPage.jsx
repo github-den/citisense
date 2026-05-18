@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { URDANETA_BARANGAYS } from '../../constants/index.js';
-import { useCityMood } from '@core/hooks/useCityMood.js';
-import { useFeed } from '@core/hooks/useFeed.js';
+import { useFeedboxGroups } from '@core/hooks/useFeedboxGroups.js';
 import styles from './LGUPage.module.css';
 
 // Sections
@@ -23,10 +22,7 @@ export default function LGUPerformancePage() {
   const [performanceTime, setPerformanceTime] = useState('30');
 
   const performanceRef = useRef(null);
-  const cityMoodDays = performanceTime === 'all' ? null : Number.parseInt(performanceTime, 10);
-
-  const { data: cityMood } = useCityMood({ days: cityMoodDays });
-  const { posts } = useFeed();
+  const { posts } = useFeedboxGroups();
 
   const availableLocations = URDANETA_BARANGAYS;
 
@@ -35,7 +31,7 @@ export default function LGUPerformancePage() {
     [performanceLocation, performanceService, performanceTime, posts],
   );
 
-  const filteredMood = useMemo(() => deriveFilteredMood(performancePosts, cityMood), [cityMood, performancePosts]);
+  const filteredMood = useMemo(() => deriveFilteredMood(performancePosts), [performancePosts]);
   const verifiedCount = performancePosts.filter((post) => VERIFIED_STATUSES.includes(post.status)).length;
   const resolvedCount = performancePosts.filter((post) => post.status === 'Resolved').length;
   const positiveSignals = performancePosts.filter((post) => post.type === 'compliment' || post.status === 'Resolved').length;
@@ -62,7 +58,7 @@ export default function LGUPerformancePage() {
     const verified = performancePosts.filter(p => p.type === 'complaint' && VERIFIED_STATUSES.includes(p.status));
     return [
       { name: 'In progress', value: verified.filter(p => p.status === 'In Progress').length, color: '#3b82f6' },
-      { name: 'On hold', value: verified.filter(p => p.status === 'On hold').length, color: '#f59e0b' },
+      { name: 'On hold', value: verified.filter(p => p.status === 'On Hold').length, color: '#f59e0b' },
       { name: 'Resolved', value: verified.filter(p => p.status === 'Resolved').length, color: '#16a34a' },
     ];
   }, [performancePosts]);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@core/lib/supabase.js';
-import { createEmptyMoodBreakdown, normalizeCityMoodResult, summarizeMoodFromReactionRows } from '@core/utils/mood.js';
+import { createEmptyMoodBreakdown, normalizeCityMoodResult, summarizeMoodFromStoredMoodRows } from '@core/utils/mood.js';
 
 const FALLBACK = normalizeCityMoodResult({
   total: 0,
@@ -10,7 +10,7 @@ const FALLBACK = normalizeCityMoodResult({
 async function fetchCityMoodFallback(days) {
   if (!supabase) return FALLBACK;
 
-  let query = supabase.from('reactions').select('emoji, created_at');
+  let query = supabase.from('feedbacks').select('final_mood, created_at');
   if (Number.isFinite(days) && days > 0) {
     const cutoff = new Date(Date.now() - (days * 24 * 60 * 60 * 1000)).toISOString();
     query = query.gte('created_at', cutoff);
@@ -22,7 +22,7 @@ async function fetchCityMoodFallback(days) {
     return FALLBACK;
   }
 
-  const summary = summarizeMoodFromReactionRows(data ?? []);
+  const summary = summarizeMoodFromStoredMoodRows(data ?? [], { minTotal: 1, minShare: 0 });
   return normalizeCityMoodResult({
     mood: summary.mood,
     emoji: summary.emoji,

@@ -85,6 +85,7 @@ export function mapPost(row) {
     myReaction: row.myReaction ?? null,
     raisedByMe: !!(row.raisedByMe ?? row.raised_by_me),
     followedByMe: !!(row.followedByMe ?? row.followed_by_me),
+    reportedByMe: !!(row.reportedByMe ?? row.reported_by_me),
     raw: row,
   };
 }

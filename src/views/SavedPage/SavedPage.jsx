@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import FeedCard from '../../components/FeedCard/FeedCard.jsx';
 import FeedCardSkeleton from '../../components/FeedCard/FeedCardSkeleton.jsx';
 import { listDemoPosts } from '@core/services/demoPosts.js';
+import { attachTopLevelDiscussionCounts, fetchTopLevelDiscussionCountMap } from '@core/services/discussionState.js';
 import { listBookmarkedPostIds } from '@core/services/localState.js';
 import { supabase } from '@core/lib/supabase.js';
+import { attachReportedByMe, fetchUserReportedPostIds } from '@core/services/reportState.js';
 import { mapPosts } from '@core/utils/postMapper.js';
 import shellStyles from '../CitizenDataPage.module.css';
 
@@ -80,7 +82,13 @@ async function fetchSavedFeedbackRows(savedIds) {
     .in('id', dbIds);
 
   if (!error) {
-    return sortRowsBySavedOrder([...(data ?? []), ...demoRows], savedIds);
+    const merged = sortRowsBySavedOrder([...(data ?? []), ...demoRows], savedIds);
+    const postIds = merged.map((row) => row?.id).filter(Boolean);
+    const [reportedIds, discussionCountMap] = await Promise.all([
+      fetchUserReportedPostIds(postIds),
+      fetchTopLevelDiscussionCountMap(postIds),
+    ]);
+    return attachTopLevelDiscussionCounts(attachReportedByMe(merged, reportedIds), discussionCountMap);
   }
 
   const message = String(error?.message ?? '').toLowerCase();
@@ -95,7 +103,13 @@ async function fetchSavedFeedbackRows(savedIds) {
   if (flatError) throw flatError;
 
   const hydrated = await hydrateProfiles(flatRows ?? []);
-  return sortRowsBySavedOrder([...hydrated, ...demoRows], savedIds);
+  const merged = sortRowsBySavedOrder([...hydrated, ...demoRows], savedIds);
+  const postIds = merged.map((row) => row?.id).filter(Boolean);
+  const [reportedIds, discussionCountMap] = await Promise.all([
+    fetchUserReportedPostIds(postIds),
+    fetchTopLevelDiscussionCountMap(postIds),
+  ]);
+  return attachTopLevelDiscussionCounts(attachReportedByMe(merged, reportedIds), discussionCountMap);
 }
 
 export default function SavedPage({ embedded = false }) {

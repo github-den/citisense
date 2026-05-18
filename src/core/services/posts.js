@@ -353,7 +353,47 @@ export const unfollowUser = async (userId) => {
   }
 };
 
-export const flagPost      = (postId) => rpc('flag_post',      { p_post_id: postId });
+export const flagPost = async (postId, reasons = []) => {
+  if (!supabase || !postId) return { data: null, error: new Error('Supabase is not configured.') };
+
+  const normalizedReasons = Array.isArray(reasons)
+    ? reasons.map((item) => String(item ?? '').trim()).filter(Boolean)
+    : [];
+
+  const accessToken = await getAccessToken();
+  if (!accessToken) return { data: null, error: new Error('You must be signed in to report.') };
+
+  try {
+    const response = await fetch('/api/reports', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        entityType: 'feedback',
+        entityId: postId,
+        selectedFlags: normalizedReasons,
+      }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { data: null, error: new Error(payload?.error ?? 'Unable to submit report.') };
+    }
+
+    return {
+      data: {
+        ...(payload ?? {}),
+        fallback: 'api',
+        selected_flags: normalizedReasons,
+      },
+      error: null,
+    };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
 
 
 
@@ -381,6 +421,36 @@ export async function postDiscuss(postId, body, { parentId = null, imageUrl = nu
     .insert({ post_id: postId, user_id: userId, parent_id: parentId, content: body, image_url: imageUrl })
     .select('id')
     .single();
+}
+
+export async function setDiscussionRaise(entryId, shouldRaise, { sourceTable = 'discussions' } = {}) {
+  if (!supabase || !entryId) return { data: null, error: new Error('Supabase is not configured.') };
+
+  const accessToken = await getAccessToken();
+  if (!accessToken) return { data: null, error: new Error('You must be signed in to raise.') };
+
+  try {
+    const response = await fetch('/api/discussion-raises', {
+      method: shouldRaise ? 'POST' : 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        entryId,
+        sourceTable: sourceTable === 'comments' ? 'comments' : 'discussions',
+      }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { data: null, error: new Error(payload?.error ?? 'Unable to update raise.') };
+    }
+
+    return { data: payload, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 }
 
 export async function createFeedbackPost({ userId, content, type, service, location, barangay, evidenceNote, imageUrl = null, imageUrls = [], profile, flags = [] }) {

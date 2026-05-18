@@ -399,6 +399,21 @@
   color: var(--ui-text-muted);
 }
 
+.raiseFlagSwitchReported .flagSwitchButton {
+  background: #ef4444;
+  color: #ffffff;
+  cursor: default;
+  transition-delay: 120ms;
+}
+
+.raiseFlagSwitchReported .flagSwitchIcon {
+  color: #ffffff;
+}
+
+.flagSwitchButton:disabled {
+  opacity: 1;
+}
+
 .actionButton,
 .shareButton {
   min-height: 34px;
@@ -809,18 +824,27 @@
   .detailsPopover {
     width: 95vw;
   }
+
+  .reportModal {
+    width: min(100vw - 24px, 520px);
+    max-height: calc(100vh - 24px);
+  }
+
+  .reportFlagList {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Modal Styles */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
   animation: fadeIn 0.15s ease;
 }
 
@@ -836,11 +860,14 @@
 
 .reportModal {
   background: #ffffff;
-  width: 380px;
+  width: 720px;
   max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
   border-radius: 18px;
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -859,7 +886,7 @@
 }
 
 .modalClose {
-  background: var(--ui-surface-hover);
+  background: transparent;
   border: none;
   width: 28px;
   height: 28px;
@@ -869,11 +896,13 @@
   justify-content: center;
   cursor: pointer;
   font-size: 12px;
-  transition: opacity 0.2s;
+  color: var(--ui-text-subtle);
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
 }
 
 .modalClose:hover {
-  opacity: 0.7;
+  background: var(--ui-surface-hover);
+  color: var(--ui-text);
 }
 
 .modalClose:disabled {
@@ -882,21 +911,83 @@
 }
 
 .reportModalBody {
-  display: grid;
-  gap: 10px;
-  padding: 18px 20px 6px;
-}
-
-.reportModalBody p {
-  margin: 0;
-  color: var(--ui-text-subtle);
-  font-size: 14px;
-  line-height: 1.5;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+  overflow-y: auto;
 }
 
 .reportError {
+  margin: 0;
+  padding: 14px 20px 0;
   color: #b91c1c !important;
   font-weight: 700;
+  font-size: 13px;
+}
+
+.reportFlagList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.reportFlagOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 20px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.reportFlagOption:hover {
+  background: var(--ui-surface-hover);
+}
+
+.reportFlagOptionActive {
+  background: color-mix(in srgb, var(--brand-soft) 46%, #ffffff);
+}
+
+.reportFlagOption input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.reportFlagMarker {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #d1d5db;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    color 160ms var(--ease-out),
+    transform 160ms var(--ease-out);
+}
+
+.reportFlagOptionActive .reportFlagMarker {
+  border-color: transparent;
+  background: transparent;
+  color: #dc2626;
+}
+
+.reportFlagLabel {
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+  padding-top: 1px;
+  white-space: nowrap;
 }
 
 .reportModalActions {
@@ -904,6 +995,18 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 20px 20px;
+  border-top: 1px solid var(--ui-border);
+  background: #ffffff;
+}
+
+.reportModalBody::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.reportModalBody {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .reportCancelButton,
@@ -946,7 +1049,13 @@
 .reportCancelButton:disabled,
 .reportSubmitButton:disabled {
   cursor: default;
-  opacity: 0.58;
+  opacity: 1;
+}
+
+.reportSubmitButton:disabled {
+  background: #e5e7eb;
+  border-color: #e5e7eb;
+  color: #9ca3af;
 }
 
 .modalList {

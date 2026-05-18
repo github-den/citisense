@@ -86,31 +86,24 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .footer {
-  padding: 0 16px 12px;
-  background: #ffffff;
+  padding: 0;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.92), rgba(255, 255, 255, 0.98));
+  border-top: 1px solid var(--ui-border);
   position: relative;
   z-index: 20;
 }
 
 /* Hide scrollbar for cleaner look, but keep functionality */
 .content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.content::-webkit-scrollbar-thumb {
-  background: var(--ui-border);
-  border-radius: 10px;
-}
-
-.content::-webkit-scrollbar-thumb:hover {
-  background: var(--ui-border-strong);
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 @media (max-width: 760px) {

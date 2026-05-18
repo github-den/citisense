@@ -8,9 +8,40 @@
   isolation: isolate;
   background: #ffffff;
 }
-  font-size: 14px;
-  line-height: 1.6;
-  font-weight: 700;
+
+.introOuter {
+  flex-shrink: 0;
+  background: #ffffff;
+  width: 100%;
+  border-top: 1px solid var(--ui-border);
+  border-bottom: 1px solid var(--ui-border);
+  position: relative;
+  z-index: 10;
+}
+
+.introInner {
+  padding-inline: var(--shell-gutter);
+  padding-top: 8px;
+  padding-bottom: 32px;
+}
+
+.tightHeader {
+  padding-block: 32px 0 !important;
+  align-items: center !important;
+}
+
+.filterGroupActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mainSection {
+  flex-grow: 1;
+  padding-inline: var(--shell-gutter);
+  padding-block: 28px 60px;
+  position: relative;
+  z-index: 1;
 }
 
 .performanceFilters {

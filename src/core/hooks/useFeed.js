@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@core/lib/supabase.js';
+import { attachTopLevelDiscussionCounts, fetchTopLevelDiscussionCountMap } from '@core/services/discussionState.js';
 import { mapPosts } from '@core/utils/postMapper.js';
 import { buildReactionSummaryMap } from '@core/utils/mood.js';
 import { listDemoPosts } from '@core/services/demoPosts.js';
+import { attachReportedByMe, fetchUserReportedPostIds } from '@core/services/reportState.js';
 
 const POST_SELECT = '*';
 const PAGE_SIZE = 20;
@@ -148,7 +150,7 @@ async function hydrateRows(rows, currentUserId) {
   const userIds = [...new Set(rows.map(row => row.user_id ?? row.author_id).filter(Boolean))];
 
   // Fetch all metadata in parallel for better performance
-  const [authorMap, raisedIds, followingIds, reactionMap, raiseCounts, reactionSummaryMap] = await Promise.all([
+  const [authorMap, raisedIds, followingIds, reactionMap, raiseCounts, reactionSummaryMap, reportedIds, discussionCountMap] = await Promise.all([
     fetchAuthorMap(userIds),
     fetchUserRaises(currentUserId, postIds),
     (async () => {
@@ -159,21 +161,22 @@ async function hydrateRows(rows, currentUserId) {
     fetchUserReactions(currentUserId, postIds),
     fetchRaiseCounts(postIds),
     fetchReactionSummaryMap(postIds),
+    fetchUserReportedPostIds(postIds, currentUserId),
+    fetchTopLevelDiscussionCountMap(postIds),
   ]);
 
-  return rows.map(row => {
+  return attachTopLevelDiscussionCounts(attachReportedByMe(rows, reportedIds), discussionCountMap).map(row => {
     const userId = row.user_id ?? row.author_id;
     const reactionSummary = reactionSummaryMap.get(row.id) ?? null;
-    const hasStrongReaction = reactionSummary?.isStrong === true;
     return {
       ...row,
       profiles: row.profiles ?? authorMap.get(userId) ?? null,
       raises_count: raiseCounts.has(row.id) ? raiseCounts.get(row.id) : (row.raises_count ?? 0),
       reacts_count: reactionSummary?.total ?? row.reacts_count ?? 0,
       reaction_breakdown: reactionSummary?.breakdown ?? row.reaction_breakdown ?? null,
-      final_mood: hasStrongReaction ? reactionSummary?.mood : (row.final_mood ?? null),
-      mood_confidence: hasStrongReaction ? (reactionSummary?.confidence ?? 0) : (row.mood_confidence ?? 0),
-      mood_source: hasStrongReaction ? (reactionSummary?.source ?? 'reactions') : (row.mood_source ?? 'none'),
+      final_mood: row.final_mood ?? reactionSummary?.mood ?? null,
+      mood_confidence: row.mood_confidence ?? reactionSummary?.confidence ?? 0,
+      mood_source: row.mood_source ?? reactionSummary?.source ?? 'none',
       reactionSummary,
       raisedByMe: raisedIds.has(row.id),
       followedByMe: followingIds.has(userId),

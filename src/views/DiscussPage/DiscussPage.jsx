@@ -1,14 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChatCircle, PaperPlaneTilt, Paperclip, X, At } from '@phosphor-icons/react';
+import { PaperPlaneTilt, Paperclip, X, At, TrayArrowUp, FlagBanner } from '@phosphor-icons/react';
 import FeedCard from '../../components/FeedCard/FeedCard.jsx';
 import Avatar from '../../components/ui/Avatar.jsx';
 import { useAuth } from '@core/context/AuthContext.jsx';
-import { postDiscuss } from '@core/services/posts.js';
+import { postDiscuss, setDiscussionRaise } from '@core/services/posts.js';
 import { uploadMediaFiles } from '@core/services/media.js';
+import { reportEntity } from '@core/services/moderation.js';
+import { DISCUSSION_REPORT_FLAGS } from '@core/constants/reportFlags.js';
+import { fetchUserRaisedDiscussionKeys, getDiscussionRaiseKey } from '@core/services/discussionRaiseState.js';
+import { fetchUserReportedEntityKeys } from '@core/services/reportState.js';
 import { useDiscussions } from '@core/hooks/useDiscussions.js';
+import { formatCount, formatTime } from '@core/utils/format.js';
+import feedCardStyles from '../../components/FeedCard/FeedCard.module.css';
 import styles from './DiscussPage.module.css';
 
 const MAX_ATTACHMENTS = 5;
+const DEFAULT_VISIBLE_REPLIES = 5;
 
 function isVideo(url) {
   return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(String(url ?? ''));
@@ -16,25 +23,6 @@ function isVideo(url) {
 
 function isImage(url) {
   return /\.(png|jpe?g|gif|webp|avif|bmp|svg)(\?.*)?$/i.test(String(url ?? ''));
-}
-
-function buildThread(items) {
-  const byParent = new Map();
-  for (const item of items) {
-    const key = item.parentId ?? 'root';
-    if (!byParent.has(key)) byParent.set(key, []);
-    byParent.get(key).push(item);
-  }
-
-  function walk(parentId = 'root', depth = 0) {
-    const nodes = byParent.get(parentId) ?? [];
-    return nodes.flatMap((node) => [
-      { ...node, depth },
-      ...walk(node.id, depth + 1),
-    ]);
-  }
-
-  return walk();
 }
 
 function makeAttachment(file) {
@@ -46,9 +34,216 @@ function makeAttachment(file) {
   };
 }
 
+function formatDiscussionTimestamp(value) {
+  if (!value) return '';
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return '';
+
+  const diff = Date.now() - timestamp;
+  if (diff < 24 * 60 * 60 * 1000) return formatTime(value);
+
+  const date = new Date(timestamp);
+  const day = date.toLocaleDateString('en-GB', { day: '2-digit' });
+  const month = date.toLocaleDateString('en-GB', { month: 'short' });
+  const year = date.toLocaleDateString('en-GB', { year: '2-digit' });
+  return `${day} ${month} '${year}`;
+}
+
+function buildDiscussionGroups(items, sortMode = 'popular') {
+  const byId = new Map(items.map((item) => [String(item.id), item]));
+  const byParent = new Map();
+
+  items.forEach((item) => {
+    const key = String(item.parentId ?? 'root');
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key).push(item);
+  });
+
+  function getReplies(parentId) {
+    const nodes = [...(byParent.get(String(parentId)) ?? [])]
+      .sort((left, right) => Date.parse(left.createdAt ?? '') - Date.parse(right.createdAt ?? ''));
+
+    return nodes.flatMap((node) => {
+      const parent = byId.get(String(node.parentId));
+      const replyTarget = parent?.author?.fullName ?? null;
+      return [
+        {
+          ...node,
+          replyTarget,
+          displayTime: formatDiscussionTimestamp(node.createdAt),
+        },
+        ...getReplies(node.id),
+      ];
+    });
+  }
+
+  return items
+    .filter((item) => !item.parentId)
+    .map((item) => ({
+      ...item,
+      replies: getReplies(item.id),
+      displayTime: formatDiscussionTimestamp(item.createdAt),
+    }))
+    .sort((left, right) => {
+      if (left.isPinned !== right.isPinned) return left.isPinned ? -1 : 1;
+      if (sortMode === 'popular') {
+        const likeDelta = Number(right.likes ?? 0) - Number(left.likes ?? 0);
+        if (likeDelta !== 0) return likeDelta;
+      }
+      return Date.parse(right.createdAt ?? '') - Date.parse(left.createdAt ?? '');
+    });
+}
+
+function getDiscussionEntityType(entry) {
+  return entry?.parentId ? 'reply' : 'discussion';
+}
+
+function getDiscussionReportKey(entry) {
+  return `${getDiscussionEntityType(entry)}:${String(entry?.id ?? '').trim()}`;
+}
+
+function DiscussionReportModal({ entry, reported, onClose, onReported }) {
+  const { requireAuth, session } = useAuth() ?? {};
+  const [selectedFlags, setSelectedFlags] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  if (!entry) return null;
+
+  const entityType = entry.parentId ? 'reply' : 'discussion';
+  const isOwnEntry = session?.user?.id && session.user.id === entry.userId;
+  const modalTitle = entityType === 'reply' ? 'Report reply' : 'Report discussion';
+
+  function toggleFlag(label) {
+    setSelectedFlags((current) => (
+      current.includes(label)
+        ? current.filter((item) => item !== label)
+        : [...current, label]
+    ));
+  }
+
+  function handleSubmit() {
+    const submit = async () => {
+      if (isOwnEntry || selectedFlags.length === 0 || reported) return;
+      setBusy(true);
+
+      const { error: reportError } = await reportEntity({
+        entityType,
+        entityId: entry.id,
+        selectedFlags,
+      });
+
+      if (reportError) {
+        setBusy(false);
+        return;
+      }
+
+      setBusy(false);
+      onReported?.(entry.id);
+      onClose?.();
+    };
+
+    if (requireAuth) requireAuth(submit, 'Sign in to report this discussion entry.');
+    else submit();
+  }
+
+  return (
+    <div className={feedCardStyles.modalOverlay} role="presentation" onMouseDown={onClose}>
+      <div
+        className={feedCardStyles.reportModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`discussion-report-title-${entry.id}`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className={feedCardStyles.modalHeader}>
+          <h2 id={`discussion-report-title-${entry.id}`}>{modalTitle}</h2>
+          <button
+            type="button"
+            className={feedCardStyles.modalClose}
+            onClick={onClose}
+            aria-label="Close report modal"
+            disabled={busy}
+          >
+            <X size={18} weight="bold" />
+          </button>
+        </div>
+        <div className={feedCardStyles.reportModalBody}>
+          <div className={feedCardStyles.reportFlagList} role="group" aria-label="Report reasons">
+            {DISCUSSION_REPORT_FLAGS.map((flag) => {
+              const checked = selectedFlags.includes(flag);
+              return (
+                <label
+                  key={flag}
+                  className={`${feedCardStyles.reportFlagOption} ${checked ? feedCardStyles.reportFlagOptionActive : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleFlag(flag)}
+                    disabled={busy || reported || isOwnEntry}
+                  />
+                  <span className={feedCardStyles.reportFlagMarker} aria-hidden="true">
+                    {checked ? <FlagBanner size={18} weight="fill" /> : null}
+                  </span>
+                  <span className={feedCardStyles.reportFlagLabel}>{flag}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+        <div className={feedCardStyles.reportModalActions}>
+          <button type="button" className={feedCardStyles.reportCancelButton} onClick={onClose} disabled={busy}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={feedCardStyles.reportSubmitButton}
+            onClick={handleSubmit}
+            disabled={busy || reported || isOwnEntry || selectedFlags.length === 0}
+          >
+            {busy ? 'Reporting...' : (reported ? 'Reported' : 'Submit report')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DiscussionThreadSkeleton() {
+  return (
+    <div className={styles.threadLoading} aria-hidden="true">
+      <div className={styles.threadSkeletonCard}>
+        <div className={styles.threadSkeletonHeader}>
+          <div className={styles.threadSkeletonAvatar} />
+          <div className={styles.threadSkeletonMeta}>
+            <div className={styles.threadSkeletonName} />
+            <div className={styles.threadSkeletonTime} />
+          </div>
+        </div>
+        <div className={styles.threadSkeletonBody}>
+          <div className={styles.threadSkeletonLine} />
+          <div className={`${styles.threadSkeletonLine} ${styles.threadSkeletonLineShort}`} />
+        </div>
+        <div className={styles.threadSkeletonFooter}>
+          <div className={styles.threadSkeletonChip} />
+          <div className={styles.threadSkeletonChip} />
+          <div className={styles.threadSkeletonChip} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DiscussPage({ post, onBack, hideComposer = false, onReplyClick }) {
+  const { session, requireAuth } = useAuth() ?? {};
   const [refresh, setRefresh] = useState(0);
   const [parentId, setParentId] = useState(null);
+  const [reportEntry, setReportEntry] = useState(null);
+  const [sortMode, setSortMode] = useState('popular');
+  const [expandedReplies, setExpandedReplies] = useState({});
+  const [raisedEntryKeys, setRaisedEntryKeys] = useState(() => new Set());
+  const [entryLikeOverrides, setEntryLikeOverrides] = useState({});
+  const [reportedEntryKeys, setReportedEntryKeys] = useState(() => new Set());
   const { discussions, loading, error: discussionsError } = useDiscussions(post?.id, refresh);
 
   const replyingTo = useMemo(() => {
@@ -56,13 +251,52 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
     return discussions.find(d => d.id === parentId) ?? null;
   }, [discussions, parentId]);
 
-  const threadedDiscussions = useMemo(() => buildThread(discussions), [discussions]);
+  const discussionGroups = useMemo(() => buildDiscussionGroups(discussions, sortMode), [discussions, sortMode]);
+  const topLevelCount = discussionGroups.length;
+  const postWithDiscussionCount = useMemo(
+    () => ({ ...post, discuss: topLevelCount }),
+    [post, topLevelCount],
+  );
 
   useEffect(() => {
     const handleRefresh = () => setRefresh(prev => prev + 1);
     window.addEventListener('citicontrol:refresh-discussions', handleRefresh);
     return () => window.removeEventListener('citicontrol:refresh-discussions', handleRefresh);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!session?.user?.id || discussions.length === 0) {
+      setRaisedEntryKeys(new Set());
+      setReportedEntryKeys(new Set());
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const reportEntries = discussions.map((entry) => ({
+      id: entry.id,
+      entityType: getDiscussionEntityType(entry),
+    }));
+
+    Promise.all([
+      fetchUserRaisedDiscussionKeys(discussions, session.user.id),
+      fetchUserReportedEntityKeys(reportEntries, session.user.id),
+    ]).then(([raisedKeys, reportedKeys]) => {
+      if (cancelled) return;
+      setRaisedEntryKeys(raisedKeys);
+      setReportedEntryKeys(reportedKeys);
+    }).catch(() => {
+      if (cancelled) return;
+      setRaisedEntryKeys(new Set());
+      setReportedEntryKeys(new Set());
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [discussions, session?.user?.id]);
 
   // Expose setParentId if needed via callback
   useEffect(() => {
@@ -72,13 +306,86 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
     }
   }, [onReplyClick, parentId]);
 
+  function getVisibleReplyCount(group) {
+    if (!group?.replies?.length) return 0;
+    return expandedReplies[group.id] ?? 0;
+  }
+
+  function handleShowMoreReplies(group) {
+    setExpandedReplies((current) => ({
+      ...current,
+      [group.id]: Math.min(group.replies.length, getVisibleReplyCount(group) + DEFAULT_VISIBLE_REPLIES),
+    }));
+  }
+
+  function handleCollapseReplies(group) {
+    setExpandedReplies((current) => ({
+      ...current,
+      [group.id]: 0,
+    }));
+  }
+
+  function getEntryLikes(entry) {
+    return entryLikeOverrides[getDiscussionRaiseKey(entry.id, entry.sourceTable)] ?? Number(entry.likes ?? 0);
+  }
+
+  function isEntryRaised(entry) {
+    return raisedEntryKeys.has(getDiscussionRaiseKey(entry.id, entry.sourceTable));
+  }
+
+  function isEntryReported(entry) {
+    return reportedEntryKeys.has(getDiscussionReportKey(entry));
+  }
+
+  function handleRaiseEntry(entry) {
+    const submit = async () => {
+      const entryKey = getDiscussionRaiseKey(entry.id, entry.sourceTable);
+      const nextRaised = !raisedEntryKeys.has(entryKey);
+      const previousLikes = getEntryLikes(entry);
+
+      setRaisedEntryKeys((current) => {
+        const next = new Set(current);
+        if (nextRaised) next.add(entryKey);
+        else next.delete(entryKey);
+        return next;
+      });
+      setEntryLikeOverrides((current) => ({
+        ...current,
+        [entryKey]: nextRaised ? previousLikes + 1 : Math.max(0, previousLikes - 1),
+      }));
+
+      const result = await setDiscussionRaise(entry.id, nextRaised, { sourceTable: entry.sourceTable });
+      if (result?.error) {
+        setRaisedEntryKeys((current) => {
+          const next = new Set(current);
+          if (nextRaised) next.delete(entryKey);
+          else next.add(entryKey);
+          return next;
+        });
+        setEntryLikeOverrides((current) => ({
+          ...current,
+          [entryKey]: previousLikes,
+        }));
+        return;
+      }
+
+      setEntryLikeOverrides((current) => ({
+        ...current,
+        [entryKey]: Number(result.data?.likes_count ?? current[entryKey] ?? previousLikes),
+      }));
+    };
+
+    if (requireAuth) requireAuth(submit, 'Sign in to raise this discussion.');
+    else submit();
+  }
+
   if (!post) return null;
 
   return (
     <div className={styles.container}>
       <div className={styles.cardWrap}>
         <FeedCard 
-          post={post} 
+          post={postWithDiscussionCount} 
           isFullView={true} 
           isDiscussMode={true}
           className={styles.feedCardNoRadius}
@@ -88,67 +395,195 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
       <section className={styles.discussSection}>
         <div className={styles.statsRow}>
           <div className={styles.statsLeft}>
-            <strong>{discussions.length} feedbacks</strong>
+            <strong>{topLevelCount} {topLevelCount === 1 ? 'discussion' : 'discussions'}</strong>
           </div>
-          {discussions.length > 1 && (
-            <div className={styles.statsRight}>
-              <button className={`${styles.filterBtn} ${styles.filterBtnActive}`}>Popular</button>
-              <button className={styles.filterBtn}>Recent</button>
-            </div>
-          )}
+          <div className={styles.statsRight}>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${sortMode === 'popular' ? styles.filterBtnActive : ''}`}
+              onClick={() => setSortMode('popular')}
+            >
+              Popular
+            </button>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${sortMode === 'recent' ? styles.filterBtnActive : ''}`}
+              onClick={() => setSortMode('recent')}
+            >
+              Recent
+            </button>
+          </div>
         </div>
 
         <div className={styles.thread}>
-          {loading && <div className={styles.threadLoading}>Loading discussion...</div>}
+          {loading && <DiscussionThreadSkeleton />}
           {!loading && discussionsError && <div className={styles.threadError}>Discussion could not load.</div>}
 
-          {!loading && threadedDiscussions.map((d) => (
-            <div
-              key={d.id}
-              className={`${styles.item} ${d.parentId ? styles.itemReply : ''}`}
-              style={{ '--reply-depth': Math.min(d.depth ?? 0, 4) }}
-            >
-              <div className={styles.avatar} style={(d.author.bg?.startsWith?.('/avatars/') || d.author.bg?.startsWith?.('http')) ? { backgroundImage: `url(${d.author.bg})` } : { background: d.author.bg }}>
-                {!(d.author.bg?.startsWith?.('/avatars/') || d.author.bg?.startsWith?.('http')) ? d.author.initials : null}
-              </div>
-              <div className={styles.itemBody}>
-                <div className={styles.itemTop}>
-                  <span className={styles.name}>{d.author.fullName}</span>
-                  <span className={styles.handle}>{d.author.username}</span>
-                  {d.isAdmin && <span className={styles.badge}>Admin</span>}
-                  {d.isPinned && <span className={styles.badgePinned}>Pinned</span>}
-                  <span className={styles.time}>{d.time}</span>
+          {!loading && discussionGroups.map((discussion) => {
+            const visibleReplyCount = getVisibleReplyCount(discussion);
+            const visibleReplies = discussion.replies.slice(0, visibleReplyCount);
+            const hiddenReplyCount = Math.max(0, discussion.replies.length - visibleReplyCount);
+            const showMoreCount = Math.min(DEFAULT_VISIBLE_REPLIES, hiddenReplyCount);
+            const discussionRaised = isEntryRaised(discussion);
+            const discussionLikes = getEntryLikes(discussion);
+            const discussionReported = isEntryReported(discussion);
+
+            return (
+              <article key={discussion.id} className={styles.discussionCard}>
+                <div className={styles.discussionHeader}>
+                  <div className={styles.avatar} style={(discussion.author.bg?.startsWith?.('/avatars/') || discussion.author.bg?.startsWith?.('http')) ? { backgroundImage: `url(${discussion.author.bg})` } : { background: discussion.author.bg }}>
+                    {!(discussion.author.bg?.startsWith?.('/avatars/') || discussion.author.bg?.startsWith?.('http')) ? discussion.author.initials : null}
+                  </div>
+                  <div className={styles.discussionHeaderMeta}>
+                    <div className={styles.discussionAuthorRow}>
+                      <span className={styles.name}>{discussion.author.fullName}</span>
+                      {discussion.isAdmin ? <span className={styles.badge}>Admin</span> : null}
+                      {discussion.isPinned ? <span className={styles.badgePinned}>Pinned</span> : null}
+                    </div>
+                    <div className={styles.discussionTime}>{discussion.displayTime}</div>
+                  </div>
                 </div>
-                <div className={styles.bodyText}>{d.body}</div>
-                {!!d.imageUrl && (
-                  isImage(d.imageUrl) ? (
-                    <a className={styles.mediaAttachment} href={d.imageUrl} target="_blank" rel="noreferrer">
-                      <img src={d.imageUrl} alt="" />
+
+                <div className={styles.discussionBody}>{discussion.body}</div>
+
+                {!!discussion.imageUrl && (
+                  isImage(discussion.imageUrl) ? (
+                    <a className={styles.mediaAttachment} href={discussion.imageUrl} target="_blank" rel="noreferrer">
+                      <img src={discussion.imageUrl} alt="" />
                     </a>
-                  ) : isVideo(d.imageUrl) ? (
+                  ) : isVideo(discussion.imageUrl) ? (
                     <div className={styles.mediaAttachment}>
-                      <video src={d.imageUrl} controls playsInline preload="metadata" />
+                      <video src={discussion.imageUrl} controls playsInline preload="metadata" />
                     </div>
                   ) : (
-                    <a className={styles.attachment} href={d.imageUrl} target="_blank" rel="noreferrer">
-                      {d.imageUrl}
+                    <a className={styles.attachment} href={discussion.imageUrl} target="_blank" rel="noreferrer">
+                      {discussion.imageUrl}
                     </a>
                   )
                 )}
-                <div className={styles.itemActions}>
-                  <button type="button" className={styles.actionBtn} onClick={() => setParentId(d.id)}>
+
+                <div className={styles.discussionFooter}>
+                  <span className={styles.replyCountLabel}>{discussion.replies.length} {discussion.replies.length === 1 ? 'reply' : 'replies'}</span>
+                  <span className={styles.footerDivider} aria-hidden="true" />
+                  <button
+                    type="button"
+                    className={`${styles.discussionRaiseButton} ${discussionRaised ? styles.discussionRaiseButtonActive : ''}`}
+                    onClick={() => handleRaiseEntry(discussion)}
+                  >
+                    <TrayArrowUp size={15} weight={discussionRaised ? 'fill' : 'regular'} />
+                    <span>{formatCount(discussionLikes)}</span>
+                  </button>
+                  <button type="button" className={styles.actionBtn} onClick={() => setParentId(discussion.id)}>
                     Reply
                   </button>
-                  {!!d.likes && <span className={styles.likeMeta}>{d.likes} helpful</span>}
+                  {session?.user?.id !== discussion.userId ? (
+                    <button
+                      type="button"
+                      className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                      onClick={() => setReportEntry(discussion)}
+                      disabled={discussionReported}
+                    >
+                      {discussionReported ? 'Reported' : 'Report'}
+                    </button>
+                  ) : null}
                 </div>
-              </div>
-            </div>
-          ))}
+
+                {visibleReplies.length > 0 ? (
+                  <div className={styles.replyList}>
+                    {visibleReplies.map((reply) => {
+                      const replyRaised = isEntryRaised(reply);
+                      const replyLikes = getEntryLikes(reply);
+                      const replyReported = isEntryReported(reply);
+                      return (
+                        <div key={reply.id} className={styles.replyCard}>
+                          <div className={styles.replyHeader}>
+                            <div className={styles.avatar} style={(reply.author.bg?.startsWith?.('/avatars/') || reply.author.bg?.startsWith?.('http')) ? { backgroundImage: `url(${reply.author.bg})` } : { background: reply.author.bg }}>
+                              {!(reply.author.bg?.startsWith?.('/avatars/') || reply.author.bg?.startsWith?.('http')) ? reply.author.initials : null}
+                            </div>
+                            <div className={styles.replyMeta}>
+                              <div className={styles.replyNames}>
+                                <span className={styles.replyAuthor}>{reply.author.fullName}</span>
+                                {reply.replyTarget ? (
+                                  <>
+                                    <span className={styles.replyArrow} aria-hidden="true">&gt;</span>
+                                    <span className={styles.replyTarget}>{reply.replyTarget}</span>
+                                  </>
+                                ) : null}
+                              </div>
+                              <div className={styles.replyTime}>{reply.displayTime}</div>
+                            </div>
+                          </div>
+                          <div className={styles.replyBody}>{reply.body}</div>
+                          {!!reply.imageUrl && (
+                            isImage(reply.imageUrl) ? (
+                              <a className={styles.mediaAttachment} href={reply.imageUrl} target="_blank" rel="noreferrer">
+                                <img src={reply.imageUrl} alt="" />
+                              </a>
+                            ) : isVideo(reply.imageUrl) ? (
+                              <div className={styles.mediaAttachment}>
+                                <video src={reply.imageUrl} controls playsInline preload="metadata" />
+                              </div>
+                            ) : (
+                              <a className={styles.attachment} href={reply.imageUrl} target="_blank" rel="noreferrer">
+                                {reply.imageUrl}
+                              </a>
+                            )
+                          )}
+                          <div className={styles.replyFooter}>
+                            <button
+                              type="button"
+                              className={`${styles.discussionRaiseButton} ${replyRaised ? styles.discussionRaiseButtonActive : ''}`}
+                              onClick={() => handleRaiseEntry(reply)}
+                            >
+                              <TrayArrowUp size={15} weight={replyRaised ? 'fill' : 'regular'} />
+                              <span>{formatCount(replyLikes)}</span>
+                            </button>
+                            <button type="button" className={styles.actionBtn} onClick={() => setParentId(reply.id)}>
+                              Reply
+                            </button>
+                            {session?.user?.id !== reply.userId ? (
+                              <button
+                                type="button"
+                                className={`${styles.actionBtn} ${styles.actionBtnDanger}`}
+                                onClick={() => setReportEntry(reply)}
+                                disabled={replyReported}
+                              >
+                                {replyReported ? 'Reported' : 'Report'}
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+
+                {discussion.replies.length > 0 ? (
+                  <div className={`${styles.replyToggleRow} ${visibleReplyCount > 0 ? styles.replyToggleRowIndented : ''}`}>
+                    {showMoreCount > 0 ? (
+                      <button type="button" className={styles.replyToggleBtn} onClick={() => handleShowMoreReplies(discussion)}>
+                        {visibleReplyCount > 0
+                          ? `Show ${showMoreCount} more ${showMoreCount === 1 ? 'reply' : 'replies'}`
+                          : `Show ${showMoreCount} ${showMoreCount === 1 ? 'reply' : 'replies'}`}
+                      </button>
+                    ) : null}
+                    {visibleReplyCount > 0 ? (
+                      <button type="button" className={styles.replyToggleBtn} onClick={() => handleCollapseReplies(discussion)}>
+                        Collapse replies
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </article>
+            );
+          })}
         </div>
 
         {!loading && !discussionsError && discussions.length === 0 && (
-          <div className={styles.empty}>
-            <ChatCircle size={38} weight="duotone" color="var(--text-3)"/>
+          <div className={`${styles.empty} ${hideComposer ? styles.emptyCompact : ''}`}>
+            <span className={styles.emptyBee} role="img" aria-label="Bee">
+              🐝
+            </span>
             <p>No discussion yet</p>
             <span>Be the first to add useful context for this feedback.</span>
           </div>
@@ -166,6 +601,22 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
           onCancelReply={() => setParentId(null)}
         />
       )}
+
+      {reportEntry ? (
+        <DiscussionReportModal
+          entry={reportEntry}
+          reported={isEntryReported(reportEntry)}
+          onClose={() => setReportEntry(null)}
+          onReported={(entryId) => {
+            const entryType = getDiscussionEntityType(reportEntry);
+            setReportedEntryKeys((current) => {
+              const next = new Set(current);
+              next.add(`${entryType}:${String(entryId)}`);
+              return next;
+            });
+          }}
+        />
+      ) : null}
     </div>
   );
 }

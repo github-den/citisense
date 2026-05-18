@@ -49,7 +49,7 @@ const BARANGAY_COORDINATE_MAP = new Map(
   URDANETA_BARANGAY_COORDINATES.map((barangay) => [barangay.name.toLowerCase(), barangay]),
 );
 
-export const VERIFIED_STATUSES = ['In Progress', 'On hold', 'Resolved'];
+export const VERIFIED_STATUSES = ['In Progress', 'On Hold', 'Resolved'];
 export const NOT_ACCEPTED_STATUSES = ['Dismissed', 'Closed', 'Invalid'];
 
 export const TYPE_COLORS = {
@@ -124,7 +124,7 @@ export function buildMapSignals(posts) {
 
     if (post.status === 'Under Review') current.underReview += 1;
     if (post.status === 'In Progress') current.inProgress += 1;
-    if (post.status === 'On hold') current.onHold += 1;
+    if (post.status === 'On Hold') current.onHold += 1;
     if (post.status === 'Resolved') current.resolved += 1;
     if (post.status === 'Dismissed') current.dismissed += 1;
     if (post.status === 'Closed') current.closed += 1;
@@ -164,38 +164,40 @@ export function filterPosts(posts, service, location, timeRange = 'all') {
   });
 }
 
-export function deriveFilteredMood(posts, cityMood) {
-  const summary = summarizeMoodFromPosts(posts, { allowPrediction: false });
+export function deriveFilteredMood(posts) {
+  const summary = summarizeMoodFromPosts(posts, {
+    allowPrediction: false,
+    minTotal: 1,
+    minShare: 0,
+  });
   if (summary.mood) {
     return {
       label: formatMoodLabel(summary.mood),
       value: Math.round(summary.confidence * 100),
-      detail: `${summary.total} reactions in this range`,
+      detail: `${summary.total} feedback${summary.total === 1 ? '' : 's'} in this range`,
     };
   }
 
   if (summary.total > 0) {
     return {
-      label: 'Low confidence',
+      label: 'Mixed mood',
       value: 0,
-      detail: `${summary.total} reactions are still mixed`,
+      detail: `${summary.total} feedback${summary.total === 1 ? '' : 's'} are evenly split`,
     };
   }
 
   if (posts.length === 0) {
     return {
-      label: cityMood?.mood ? formatMoodLabel(cityMood.mood) : 'No mood data yet',
+      label: 'No mood data yet',
       value: 0,
-      detail: cityMood?.total
-        ? `${cityMood.total} city reactions in this range`
-        : 'No city reactions recorded in this range',
+      detail: 'No feedbacks recorded in this range',
     };
   }
 
   return {
     label: 'No mood data yet',
     value: 0,
-    detail: 'No reactions recorded in this range',
+    detail: 'These feedbacks still need mood data',
   };
 }
 
@@ -212,7 +214,7 @@ export function estimateAverageResponseHours(posts) {
 
     if (post.status === 'Resolved') return sum + Math.max(0.16, ageDays * 0.42);
     if (post.status === 'In Progress') return sum + Math.max(0.2, ageDays * 0.58);
-    if (post.status === 'On hold') return sum + Math.max(0.32, ageDays * 0.74);
+    if (post.status === 'On Hold') return sum + Math.max(0.32, ageDays * 0.74);
     if (post.status === 'Dismissed' || post.status === 'Invalid') return sum + Math.max(0.18, ageDays * 0.35);
     return sum + Math.max(0.14, ageDays * 0.48);
   }, 0);

@@ -9,7 +9,7 @@ import styles from './RightAside.module.css';
 function FeedboxPlaceholders() {
   return (
     <div className={styles.feedboxPlaceholderList} aria-hidden="true">
-      {Array.from({ length: 4 }).map((_, index) => (
+      {Array.from({ length: 5 }).map((_, index) => (
         <div key={index} className={styles.tPlaceholder}>
           <div className={styles.tPlaceholderCol1}>
             <Archive size={16} weight="fill" />
@@ -38,7 +38,7 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
     if (!topicsLoading && !cityMoodLoading) onReady?.();
   }, [cityMoodLoading, onReady, topicsLoading]);
 
-  const topTopics = useMemo(() => (topics ?? []).slice(0, 4), [topics]);
+  const topTopics = useMemo(() => (topics ?? []).slice(0, 5), [topics]);
 
   async function openTopic(topic) {
     const topicTitle = String(topic?.title ?? '').trim();
@@ -71,16 +71,11 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
     }
   }
 
-  function openTopicTab() {
-    window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
-    router.push('/feedbox?tab=topic');
-  }
-
   return (
     <>
       <section className={styles.moodCard}>
         <div className={styles.widgetTitle}>
-          <SmileyWink size={18} weight="fill" color="var(--ui-accent)" /> City mood
+          <SmileyWink size={18} weight="fill" color="var(--ui-accent)" /> City Mood
           <button
             className={styles.widgetSeeMore}
             onClick={() => setPage('cityPerformance')}
@@ -94,9 +89,6 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
             <div className={`${styles.moodTitle} ${!cityMoodLabel ? styles.moodTitleEmpty : ''}`}>
               <span>{cityMoodLabel || 'No mood data yet'}</span>
             </div>
-            {cityMood?.total ? (
-              <div className={styles.moodSub}>{cityMood.total} reactions recorded in the last 7 days.</div>
-            ) : null}
           </div>
           <span className={styles.moodEmoji} aria-hidden>{cityMood?.emoji || '\u{1F636}'}</span>
         </div>
@@ -104,14 +96,7 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
 
       <div className={`${styles.widget} ${styles.listWidget}`}>
         <div className={styles.widgetTitle}>
-          <Archive size={18} weight="fill" color="var(--ui-accent)" /> Topic feedbox
-          <button
-            className={styles.widgetSeeMore}
-            onClick={openTopicTab}
-            type="button"
-          >
-            See more
-          </button>
+          <Archive size={18} weight="fill" color="var(--ui-accent)" /> Talk of the town
         </div>
         <div className={styles.listBody}>
           {topTopics.length > 0 ? (
@@ -133,7 +118,5 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
     </>
   );
 }
-
-
 
 

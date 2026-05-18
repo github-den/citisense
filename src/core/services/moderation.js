@@ -4,20 +4,37 @@ function noClient() {
   throw new Error('Supabase is not configured.');
 }
 
-export async function reportEntity({ entityType, entityId, reason, description }) {
+export async function reportEntity({ entityType, entityId, reason, description, selectedFlags = [] }) {
   if (!supabase) noClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const reporterId = userData?.user?.id;
-  if (!reporterId) return { error: new Error('You must be signed in to report.') };
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) return { error: new Error('You must be signed in to report.') };
 
-  const { error } = await supabase.from('reports').insert({
-    reporter_id: reporterId,
-    reported_entity_type: entityType,
-    reported_entity_id: entityId,
-    reason,
-    description: description || null,
-  });
-  return { error };
+  try {
+    const response = await fetch('/api/reports', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        entityType,
+        entityId,
+        reason,
+        description,
+        selectedFlags,
+      }),
+    });
+
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { error: new Error(payload?.error ?? 'Unable to submit report.') };
+    }
+
+    return { data: payload, error: null };
+  } catch (error) {
+    return { error };
+  }
 }
 
 export async function blockUser(userId) {

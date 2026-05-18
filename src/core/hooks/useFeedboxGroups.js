@@ -1,8 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@core/lib/supabase.js';
+import { attachTopLevelDiscussionCounts, fetchTopLevelDiscussionCountMap } from '@core/services/discussionState.js';
+import { attachReportedByMe, fetchUserReportedPostIds } from '@core/services/reportState.js';
 import { mapPosts } from '@core/utils/postMapper.js';
 import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
 import { SERVICE_CATEGORIES, URDANETA_BARANGAYS } from '@/constants/index.js';
+
+const FEEDBACK_SELECT_VARIANTS = [
+  `
+    id, user_id, caption, type, status, service,
+    barangay, location:incident_location, feedback_no, raises_count, discuss_count,
+    reacts_count, final_mood, mood_confidence, mood_source,
+    predicted_mood, predicted_mood_confidence, prediction_model_version,
+    reaction_breakdown, created_at, updated_at, image_url, image_urls
+  `,
+  `
+    id, user_id, caption, type, status, service,
+    barangay, location:incident_location, feedback_no, raises_count, discuss_count,
+    reacts_count, created_at, updated_at, image_url, image_urls
+  `,
+  `
+    id, user_id, caption, type, status, service,
+    location:incident_location, feedback_no, raises_count, discuss_count,
+    reacts_count, created_at, updated_at, image_url, image_urls
+  `,
+];
 
 function computeStatusBreakdown(rows) {
   return rows.reduce((acc, row) => {
@@ -73,6 +95,15 @@ async function hydrateProfiles(rows) {
   }));
 }
 
+async function hydrateReportedState(rows) {
+  const postIds = (rows ?? []).map((row) => row?.id).filter(Boolean);
+  const [reportedIds, discussionCountMap] = await Promise.all([
+    fetchUserReportedPostIds(postIds),
+    fetchTopLevelDiscussionCountMap(postIds),
+  ]);
+  return attachTopLevelDiscussionCounts(attachReportedByMe(rows, reportedIds), discussionCountMap);
+}
+
 function buildGroup(kind, label, rows) {
   const sorted = [...rows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   return {
@@ -89,6 +120,41 @@ function buildGroup(kind, label, rows) {
     status_breakdown: computeStatusBreakdown(rows),
     rows: sorted,
   };
+}
+
+function normalizeFeedbackRow(row) {
+  return {
+    ...row,
+    barangay: row?.barangay ?? null,
+    final_mood: row?.final_mood ?? null,
+    mood_confidence: row?.mood_confidence ?? 0,
+    mood_source: row?.mood_source ?? 'none',
+    predicted_mood: row?.predicted_mood ?? null,
+    predicted_mood_confidence: row?.predicted_mood_confidence ?? 0,
+    prediction_model_version: row?.prediction_model_version ?? null,
+    reaction_breakdown: row?.reaction_breakdown ?? null,
+    location_group: normalizeLocationGroup(row?.location),
+  };
+}
+
+async function fetchFeedbackRows() {
+  let lastError = null;
+
+  for (const selectClause of FEEDBACK_SELECT_VARIANTS) {
+    const { data, error } = await supabase
+      .from('feedbacks')
+      .select(selectClause)
+      .order('created_at', { ascending: false })
+      .limit(5000);
+
+    if (!error) {
+      return data ?? [];
+    }
+
+    lastError = error;
+  }
+
+  throw lastError;
 }
 
 export function useFeedboxGroups() {
@@ -108,61 +174,23 @@ export function useFeedboxGroups() {
       setLoading(true);
       setError(null);
 
-      const baseQuery = supabase
-        .from('feedbacks')
-        .select(`
-          id, user_id, caption, type, status, service,
-          location:incident_location, feedback_no, raises_count, discuss_count,
-          reacts_count, created_at, updated_at, image_url, image_urls,
-          profiles ( username, avatar )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(5000);
-
-      const { data, error: primaryError } = await baseQuery;
-      if (!mounted) return;
-
-      if (!primaryError) {
-        const hydrated = await hydrateProfiles(data ?? []);
+      try {
+        const data = await fetchFeedbackRows();
         if (!mounted) return;
-        setRows(hydrated.map((row) => ({
-          ...row,
-          location_group: normalizeLocationGroup(row.location),
-        })));
+
+        const hydratedProfiles = await hydrateProfiles(data ?? []);
+        const hydrated = await hydrateReportedState(hydratedProfiles);
+        if (!mounted) return;
+        setRows(hydrated.map(normalizeFeedbackRow));
         setLoading(false);
         return;
-      }
-
-      const message = String(primaryError?.message ?? '').toLowerCase();
-      const needsFallback = message.includes('relationship') || message.includes('schema cache') || message.includes('could not find');
-      if (!needsFallback) {
-        setError(primaryError);
+      } catch (queryError) {
+        if (!mounted) return;
+        setError(queryError);
         setRows([]);
         setLoading(false);
         return;
       }
-
-      const { data: flat, error: flatError } = await supabase
-        .from('feedbacks')
-        .select('id, user_id, caption, type, status, service, location:incident_location, feedback_no, raises_count, discuss_count, reacts_count, created_at, updated_at, image_url, image_urls')
-        .order('created_at', { ascending: false })
-        .limit(5000);
-
-      if (!mounted) return;
-      if (flatError) {
-        setError(flatError);
-        setRows([]);
-        setLoading(false);
-        return;
-      }
-
-      const hydrated = await hydrateProfiles(flat ?? []);
-      if (!mounted) return;
-      setRows(hydrated.map((row) => ({
-        ...row,
-        location_group: normalizeLocationGroup(row.location),
-      })));
-      setLoading(false);
     }
 
     load();

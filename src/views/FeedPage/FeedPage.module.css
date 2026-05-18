@@ -130,6 +130,10 @@
   border: 1px solid var(--border);
 }
 
+.promptCard {
+  margin-top: var(--shell-top-gap) !important;
+}
+
 .empty {
   display: flex;
   flex-direction: column;

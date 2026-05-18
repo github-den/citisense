@@ -20,7 +20,7 @@
 
 .introInner {
   padding-inline: var(--shell-gutter);
-  padding-top: 0;
+  padding-top: 8px;
   padding-bottom: 32px;
 }
 
@@ -70,7 +70,7 @@
 }
 
 .tightHeader {
-  padding-bottom: 0 !important;
+  padding-block: 32px 0 !important;
 }
 
 .inlineHeader {

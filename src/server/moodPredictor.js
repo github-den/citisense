@@ -87,7 +87,7 @@ function normalizePrediction(rawPrediction) {
 }
 
 export function toFeedbackPredictionColumns(prediction) {
-  if (!prediction?.isPublic || !prediction.mood) {
+  if (!prediction?.mood) {
     return {
       predicted_mood: null,
       predicted_mood_confidence: null,

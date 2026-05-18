@@ -7,7 +7,7 @@ export const POST_TYPES = {
 export const POST_STATUSES = {
   UNDER_REVIEW: 'Under Review',
   IN_PROGRESS:  'In Progress',
-  ON_HOLD:      'On hold',
+  ON_HOLD:      'On Hold',
   RESOLVED:     'Resolved',
   DISMISSED:    'Dismissed',
   INVALID:      'Invalid',
@@ -17,7 +17,7 @@ export const POST_STATUSES = {
 export const STATUS_COLORS = {
   'Under Review': { color: '#94A3B8', bg: '#F1F5F9' },
   'In Progress':  { color: '#D97706', bg: '#FFFBEB' },
-  'On hold':      { color: '#94A3B8', bg: '#F1F5F9' },
+  'On Hold':      { color: '#94A3B8', bg: '#F1F5F9' },
   'Resolved':     { color: '#16A34A', bg: '#F0FDF4' },
   'Dismissed':    { color: '#DC2626', bg: '#FEE2E2' },
   'Invalid':      { color: '#DC2626', bg: '#FEE2E2' },

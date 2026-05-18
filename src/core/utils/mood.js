@@ -176,29 +176,44 @@ export function summarizeMoodFromReactionRows(rows = []) {
   return finalizeMoodSummary(breakdown, latestByMood);
 }
 
-export function summarizeMoodFromPosts(posts = [], options = {}) {
-  const allowPrediction = options.allowPrediction !== false;
+export function summarizeMoodFromStoredMoodRows(rows = [], options = {}) {
+  const moodField = options.moodField ?? 'final_mood';
+  const timeField = options.timeField ?? 'created_at';
   const breakdown = createEmptyMoodBreakdown();
   const latestByMood = {};
+
+  rows.forEach((row) => {
+    const mood = normalizeMood(row?.[moodField]);
+    if (!mood) return;
+
+    breakdown[mood] += 1;
+    const timestamp = toTimestamp(row?.[timeField]);
+    if (timestamp != null) {
+      latestByMood[mood] = Math.max(latestByMood[mood] ?? -1, timestamp);
+    }
+  });
+
+  return finalizeMoodSummary(breakdown, latestByMood, {
+    minTotal: options.minTotal,
+    minShare: options.minShare,
+  });
+}
+
+export function summarizeMoodFromPosts(posts = [], options = {}) {
+  const allowPrediction = options.allowPrediction !== false;
+  const finalBreakdown = createEmptyMoodBreakdown();
+  const finalLatestByMood = {};
   const predictedBreakdown = createEmptyMoodBreakdown();
   const predictedLatestByMood = {};
 
   posts.forEach((post) => {
-    const summary = post?.reactionSummary
-      ?? post?.raw?.reactionSummary
-      ?? (post?.reactBreakdown ? { breakdown: post.reactBreakdown } : null)
-      ?? (post?.raw?.reaction_breakdown ? { breakdown: post.raw.reaction_breakdown } : null);
-
     const timestamp = toTimestamp(post?.updated_at ?? post?.created_at);
-    if (summary?.breakdown) {
-      const normalizedBreakdown = normalizeMoodBreakdown(summary.breakdown);
-      MOOD_KEYS.forEach((key) => {
-        breakdown[key] += normalizedBreakdown[key];
-      });
-
-      const mood = normalizeMood(summary.dominantMood ?? summary.mood);
+    const finalSummary = getFinalMoodSummary(post);
+    if (finalSummary?.mood) {
+      const mood = finalSummary.mood;
+      finalBreakdown[mood] += 1;
       if (mood && timestamp != null) {
-        latestByMood[mood] = Math.max(latestByMood[mood] ?? -1, timestamp);
+        finalLatestByMood[mood] = Math.max(finalLatestByMood[mood] ?? -1, timestamp);
       }
       return;
     }
@@ -212,13 +227,16 @@ export function summarizeMoodFromPosts(posts = [], options = {}) {
     }
   });
 
-  const reactionSummary = finalizeMoodSummary(breakdown, latestByMood);
-  if (reactionSummary.mood || reactionSummary.total > 0) {
-    return reactionSummary;
+  const finalSummary = finalizeMoodSummary(finalBreakdown, finalLatestByMood, {
+    minTotal: options.minTotal,
+    minShare: options.minShare,
+  });
+  if (finalSummary.mood || finalSummary.total > 0) {
+    return finalSummary;
   }
 
   if (!allowPrediction) {
-    return reactionSummary;
+    return finalSummary;
   }
 
   const predictedSummary = finalizeMoodSummary(predictedBreakdown, predictedLatestByMood, {
@@ -233,17 +251,17 @@ export function summarizeMoodFromPosts(posts = [], options = {}) {
     };
   }
 
-  return reactionSummary;
+  return finalSummary;
 }
 
 export function normalizeCityMoodResult(row) {
   if (!row) return finalizeMoodSummary(createEmptyMoodBreakdown());
 
   const breakdown = normalizeMoodBreakdown(row.breakdown);
-  const summary = finalizeMoodSummary(breakdown);
+  const summary = finalizeMoodSummary(breakdown, {}, { minTotal: 1, minShare: 0 });
   const fallbackMood = normalizeMood(row.mood);
   const total = Number(row.total ?? summary.total ?? 0);
-  const mood = summary.mood ?? (fallbackMood && total > 0 ? fallbackMood : null);
+  const mood = fallbackMood ?? summary.mood ?? summary.dominantMood ?? null;
 
   return {
     mood,
@@ -251,8 +269,8 @@ export function normalizeCityMoodResult(row) {
     emoji: getMoodEmoji(mood),
     total,
     breakdown,
-    confidence: summary.confidence,
-    source: total > 0 ? 'reactions' : 'none',
+    confidence: mood ? Math.max(summary.confidence, Number(row.confidence ?? 0)) : 0,
+    source: total > 0 ? String(row.source ?? 'posts') : 'none',
   };
 }
 

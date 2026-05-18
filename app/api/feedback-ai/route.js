@@ -57,12 +57,10 @@ export async function POST(request) {
       const prediction = await predictFeedbackMood(body.content);
 
       return NextResponse.json({
-        mood: prediction.isPublic ? prediction.mood : null,
+        mood: prediction.mood,
         confidence: prediction.confidence,
-        rationale: prediction.isPublic
-          ? 'Predicted by the local xlm-roberta-base-round1 checkpoint.'
-          : 'Prediction is below the public confidence threshold.',
-        source: 'xlm-roberta-base-round1',
+        rationale: 'Predicted by the local xlm-roberta-base-round1 checkpoint.',
+        source: prediction.modelVersion,
         raw_mood: prediction.mood,
         is_public: prediction.isPublic,
         prediction_model_version: prediction.modelVersion,

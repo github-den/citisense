@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, forwardRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BookmarkSimple,
   CalendarStar,
   ChatsCircle,
   FlagBanner,
   Lightbulb,
-  Link,
   ShareFat,
   Smiley,
   Star,
   TrayArrowUp,
+  X,
   UserCirclePlus,
   UserCircleCheck,
   UserCircleMinus,
@@ -33,6 +34,7 @@ import { formatCount } from '@core/utils/format.js';
 import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
 import { dedupeMediaItems, getMediaGridModel, inferMediaType } from '@core/utils/mediaGrid.js';
 import { lockPageScroll } from '@core/utils/lockPageScroll.js';
+import { FEEDBACK_REPORT_FLAGS } from '@core/constants/reportFlags.js';
 import Avatar from '../ui/Avatar.jsx';
 import Popover from '../ui/Popover.jsx';
 import Tooltip from '../ui/Tooltip.jsx';
@@ -54,10 +56,7 @@ const REACTIONS = [
   { emoji: '\u{1F621}', label: 'Angry' },
 ];
 
-const SHARE_MAIN = [
-  { name: 'Copy link', Icon: Link, action: 'link' },
-  { name: 'Share', Icon: ShareFat, action: 'share' },
-];
+const REPORT_FLAGS = FEEDBACK_REPORT_FLAGS;
 
 function formatRelativeTime(value) {
   if (!value) return '';
@@ -320,6 +319,81 @@ function FeedbackDetailsPopover({ post, typeLabel, relativeTime, exactTime, onFi
   );
 }
 
+function ReportModal({
+  postId,
+  reportSubmitting,
+  reported,
+  selectedReportFlags,
+  onClose,
+  onToggleFlag,
+  onSubmit,
+}) {
+  const modal = (
+    <div className={styles.modalOverlay} role="presentation" onMouseDown={onClose}>
+      <div
+        className={styles.reportModal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`report-title-${postId}`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className={styles.modalHeader}>
+          <h2 id={`report-title-${postId}`}>Report feedback</h2>
+          <button
+            type="button"
+            className={styles.modalClose}
+            onClick={onClose}
+            aria-label="Close report modal"
+            disabled={reportSubmitting}
+          >
+            <X size={18} weight="bold" />
+          </button>
+        </div>
+        <div className={styles.reportModalBody}>
+          <div className={styles.reportFlagList} role="group" aria-label="Report reasons">
+            {REPORT_FLAGS.map((flag) => {
+              const checked = selectedReportFlags.includes(flag);
+              return (
+                <label
+                  key={flag}
+                  className={`${styles.reportFlagOption} ${checked ? styles.reportFlagOptionActive : ''}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggleFlag(flag)}
+                    disabled={reportSubmitting || reported}
+                  />
+                  <span className={styles.reportFlagMarker} aria-hidden="true">
+                    {checked ? <FlagBanner size={18} weight="fill" /> : null}
+                  </span>
+                  <span className={styles.reportFlagLabel}>{flag}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+        <div className={styles.reportModalActions}>
+          <button type="button" className={styles.reportCancelButton} onClick={onClose} disabled={reportSubmitting}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className={styles.reportSubmitButton}
+            onClick={onSubmit}
+            disabled={reportSubmitting || reported || selectedReportFlags.length === 0}
+          >
+            {reportSubmitting ? 'Reporting...' : (reported ? 'Reported' : 'Submit report')}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (typeof document === 'undefined') return null;
+  return createPortal(modal, document.body);
+}
+
 const FeedCard = forwardRef(({
   post,
   onFilterByType,
@@ -355,17 +429,16 @@ const FeedCard = forwardRef(({
     setFollowing(!!post.followedByMe);
     setReactCount(post.reacts ?? 0);
     setReaction(post.myReaction || null);
-  }, [post.id, post.raisedByMe, post.followedByMe, post.raises, post.reacts, post.myReaction]);
+    setReported(!!post.reportedByMe);
+  }, [post.id, post.raisedByMe, post.followedByMe, post.raises, post.reacts, post.myReaction, post.reportedByMe]);
 
-  const [reported, setReported] = useState(false);
+  const [reported, setReported] = useState(!!post.reportedByMe);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
-  const [reportError, setReportError] = useState('');
-  const [, setShared] = useState(false);
+  const [selectedReportFlags, setSelectedReportFlags] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [reactsOpen, setReactsOpen] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState(null);
-  const [hoveredShare, setHoveredShare] = useState(null);
   const [hoveredAction, setHoveredAction] = useState(null);
   const pressTimer = useRef(null);
 
@@ -505,7 +578,7 @@ const FeedCard = forwardRef(({
 
   function openReportModal() {
     gate(() => {
-      setReportError('');
+      setSelectedReportFlags([]);
       setReportOpen(true);
     }, 'Sign in to report this feedback.');
   }
@@ -513,7 +586,15 @@ const FeedCard = forwardRef(({
   function closeReportModal() {
     if (reportSubmitting) return;
     setReportOpen(false);
-    setReportError('');
+    setSelectedReportFlags([]);
+  }
+
+  function toggleReportFlag(label) {
+    setSelectedReportFlags((current) => (
+      current.includes(label)
+        ? current.filter((item) => item !== label)
+        : [...current, label]
+    ));
   }
 
   async function submitReport() {
@@ -522,21 +603,27 @@ const FeedCard = forwardRef(({
       return;
     }
 
+    if (selectedReportFlags.length === 0) {
+      showToast('Select at least one reason before submitting.', { type: 'warning' });
+      return;
+    }
+
     setReportSubmitting(true);
-    setReportError('');
+    const previousReported = reported;
     setReported(true);
 
-    const result = await flagPost(post.id);
+    const result = await flagPost(post.id, selectedReportFlags);
     setReportSubmitting(false);
 
     if (result?.error) {
-      setReported(false);
-      setReportError('Report could not be submitted. Please try again.');
+      setReported(previousReported);
+      const message = String(result.error?.message ?? 'Unable to submit your flag right now.');
+      showToast(message, { type: 'error' });
       return;
     }
 
     setReportOpen(false);
-    showToast('Report submitted.', { type: 'success' });
+    showToast('Feedback flagged for review.', { type: 'success' });
   }
 
   function handleShare() {
@@ -551,7 +638,6 @@ const FeedCard = forwardRef(({
             text: shareText,
             url: shareUrl 
           });
-          setShared(true);
         } catch {
           return;
         }
@@ -565,7 +651,6 @@ const FeedCard = forwardRef(({
     gate(async () => {
       const shareUrl = `${window.location.origin}/post/${post.id}`;
       await navigator.clipboard?.writeText(shareUrl);
-      setShared(true);
       showToast('Link copied!', { type: 'success' });
     }, 'Sign in to copy and share this feedback.');
   }
@@ -709,8 +794,9 @@ const FeedCard = forwardRef(({
             className={[
               styles.raiseFlagSwitch,
               raised ? styles.raiseFlagSwitchActive : '',
+              reported ? styles.raiseFlagSwitchReported : '',
               hoveredAction === 'raiseSwitch' ? styles.raiseFlagSwitchRaiseHover : '',
-              hoveredAction === 'flagSwitch' ? styles.raiseFlagSwitchFlagHover : '',
+              hoveredAction === 'flagSwitch' && !reported ? styles.raiseFlagSwitchFlagHover : '',
             ].filter(Boolean).join(' ')}
           >
             <Tooltip content={raised ? 'Unraise' : 'Raise'} align="top" delayDuration={0}>
@@ -735,19 +821,21 @@ const FeedCard = forwardRef(({
 
             <span className={styles.raiseFlagDivider} aria-hidden="true" />
 
-            <Tooltip content="Flag" align="top" delayDuration={0}>
+            <Tooltip content={reported ? 'Reported' : 'Report'} align="top" delayDuration={0}>
               <button
                 type="button"
                 className={styles.flagSwitchButton}
-                onClick={openReportModal}
-                aria-label="Flag feedback"
+                onClick={reported ? undefined : openReportModal}
+                aria-label={reported ? 'Feedback already reported' : 'Report feedback'}
                 aria-pressed={reported}
-                onMouseEnter={() => setHoveredAction('flagSwitch')}
+                aria-disabled={reported}
+                disabled={reported}
+                onMouseEnter={() => !reported && setHoveredAction('flagSwitch')}
                 onMouseLeave={() => setHoveredAction(null)}
               >
                 <FlagBanner
                   size={20}
-                  weight="regular"
+                  weight={reported ? 'fill' : 'regular'}
                   className={styles.flagSwitchIcon}
                   aria-hidden="true"
                 />
@@ -816,7 +904,7 @@ const FeedCard = forwardRef(({
               type="button" 
               className={[styles.actionButton, isDiscussMode ? styles.actionButtonActiveDiscuss : ''].join(' ')} 
               onClick={() => openDiscuss?.(post)} 
-              aria-label={`Discuss feedback (${formatCount(post.discuss ?? 0)} comments)`}
+              aria-label={`Discuss feedback (${formatCount(post.discuss ?? 0)} discussions)`}
               onMouseEnter={() => setHoveredAction('discuss')}
               onMouseLeave={() => setHoveredAction(null)}
             >
@@ -830,90 +918,33 @@ const FeedCard = forwardRef(({
             </button>
           </Tooltip>
 
-          <div className={styles.shareGroup}>
-            <Popover
-              hoverable
-              align="start"
-              onOpenChange={(open) => {
-                if (!open) setHoveredShare(null);
-              }}
-              trigger={(
-                <button 
-                  type="button" 
-                  className={styles.shareButton} 
-                  aria-label="Share feedback" 
-                  onMouseEnter={() => setHoveredAction('share')}
-                  onMouseLeave={() => setHoveredAction(null)}
-                >
-                  <ShareFat size={20} weight={hoveredAction === 'share' ? 'duotone' : 'regular'} aria-hidden="true" />
-                </button>
-              )}
-              panelClassName={styles.shareSheetPopover}
+          <Tooltip content="Share" align="top">
+            <button
+              type="button"
+              className={styles.shareButton}
+              aria-label="Share feedback"
+              onClick={handleShare}
+              onMouseEnter={() => setHoveredAction('share')}
+              onMouseLeave={() => setHoveredAction(null)}
             >
-              <div className={styles.reactList} role="menu" aria-label="Share options">
-                {SHARE_MAIN.map((item) => (
-                  <button 
-                    key={item.name} 
-                    type="button" 
-                    className={[styles.reactItem, hoveredShare === item.name ? styles.reactItemHovered : ''].join(' ')} 
-                    onClick={() => {
-                      if (item.action === 'link') handleCopy();
-                      else if (item.action === 'share') handleShare();
-                    }}
-                    onMouseEnter={() => setHoveredShare(item.name)}
-                    onMouseLeave={() => setHoveredShare(null)}
-                  >
-                    <item.Icon size={22} weight={hoveredShare === item.name ? 'duotone' : 'bold'} />
-                    {hoveredShare === item.name && (
-                      <span className={styles.reactLabel}>{item.name}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </Popover>
-          </div>
+              <ShareFat size={20} weight={hoveredAction === 'share' ? 'duotone' : 'regular'} aria-hidden="true" />
+            </button>
+          </Tooltip>
         </div>
 
       </div>
 
-      {reportOpen && (
-        <div className={styles.modalOverlay} role="presentation" onMouseDown={closeReportModal}>
-          <div
-            className={styles.reportModal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={`report-title-${post.id}`}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <h2 id={`report-title-${post.id}`}>Flag feedback</h2>
-              <button
-                type="button"
-                className={styles.modalClose}
-                onClick={closeReportModal}
-                aria-label="Close report modal"
-                disabled={reportSubmitting}
-              >
-                x
-              </button>
-            </div>
-            <div className={styles.reportModalBody}>
-              <p>
-                Report this feedback if it looks unsafe, abusive, misleading, or unrelated to public service concerns.
-              </p>
-              {reportError ? <p className={styles.reportError}>{reportError}</p> : null}
-            </div>
-            <div className={styles.reportModalActions}>
-              <button type="button" className={styles.reportCancelButton} onClick={closeReportModal} disabled={reportSubmitting}>
-                Cancel
-              </button>
-              <button type="button" className={styles.reportSubmitButton} onClick={submitReport} disabled={reportSubmitting || reported}>
-                {reportSubmitting ? 'Flagging...' : (reported ? 'Flagged' : 'Submit flag')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {reportOpen ? (
+        <ReportModal
+          postId={post.id}
+          reportSubmitting={reportSubmitting}
+          reported={reported}
+          selectedReportFlags={selectedReportFlags}
+          onClose={closeReportModal}
+          onToggleFlag={toggleReportFlag}
+          onSubmit={submitReport}
+        />
+      ) : null}
 
     </article>
   );
