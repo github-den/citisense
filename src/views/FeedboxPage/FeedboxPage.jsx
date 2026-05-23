@@ -132,13 +132,13 @@ function summarizeFacet(values, fallback) {
     return countDelta !== 0 ? countDelta : left[0].localeCompare(right[0]);
   });
 
-  const labels = sorted.slice(0, 3).map(([label]) => label);
+  const labels = sorted.slice(0, 1).map(([label]) => label);
   const remaining = Math.max(sorted.length - labels.length, 0);
 
   return {
     labels,
     remaining,
-    text: `${labels.join(', ')}${remaining > 0 ? ` +${remaining}` : ''}`,
+    text: `${labels.length > 0 ? labels[0] : ''}${remaining > 0 ? ` +${remaining}` : ''}`,
   };
 }
 
