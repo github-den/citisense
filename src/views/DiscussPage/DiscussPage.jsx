@@ -14,7 +14,7 @@ import { formatCount, formatTime } from '@core/utils/format.js';
 import feedCardStyles from '../../components/FeedCard/FeedCard.module.css';
 import styles from './DiscussPage.module.css';
 
-const MAX_ATTACHMENTS = 5;
+const MAX_ATTACHMENTS = 1;
 const DEFAULT_VISIBLE_REPLIES = 5;
 
 function isVideo(url) {
@@ -709,11 +709,7 @@ export function DiscussionComposer({ postId, replyingTo, onSent, onCancelReply }
         return;
       }
 
-      const extraUrls = uploadedUrls.slice(1);
-      const finalBody = [
-        body || 'Attached media',
-        extraUrls.length > 0 ? `Additional media:\n${extraUrls.join('\n')}` : '',
-      ].filter(Boolean).join('\n\n');
+      const finalBody = body || '';
 
       const { error: submitError } = await postDiscuss(postId, finalBody, {
         parentId: replyingTo?.id || null,
@@ -799,7 +795,6 @@ export function DiscussionComposer({ postId, replyingTo, onSent, onCancelReply }
           className={styles.fileInput}
           type="file"
           accept="image/*,video/*"
-          multiple
           onChange={(e) => {
             chooseFiles(e.target.files);
             e.target.value = '';
