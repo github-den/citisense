@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PaperPlaneTilt, Paperclip, X, At, TrayArrowUp, FlagBanner } from '@phosphor-icons/react';
+import { PaperPlaneTilt, Paperclip, X, TrayArrowUp, FlagBanner } from '@phosphor-icons/react';
 import FeedCard from '../../components/FeedCard/FeedCard.jsx';
 import Avatar from '../../components/ui/Avatar.jsx';
 import { useAuth } from '@core/context/AuthContext.jsx';
@@ -79,6 +79,7 @@ function buildDiscussionGroups(items, sortMode = 'popular') {
 
   return items
     .filter((item) => !item.parentId)
+    .filter((item) => (sortMode === 'lgu-response' ? item.isPinned || item.isAdmin : true))
     .map((item) => ({
       ...item,
       replies: getReplies(item.id),
@@ -239,7 +240,7 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
   const [refresh, setRefresh] = useState(0);
   const [parentId, setParentId] = useState(null);
   const [reportEntry, setReportEntry] = useState(null);
-  const [sortMode, setSortMode] = useState('popular');
+  const [sortMode, setSortMode] = useState('lgu-response');
   const [expandedReplies, setExpandedReplies] = useState({});
   const [raisedEntryKeys, setRaisedEntryKeys] = useState(() => new Set());
   const [entryLikeOverrides, setEntryLikeOverrides] = useState({});
@@ -252,10 +253,14 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
   }, [discussions, parentId]);
 
   const discussionGroups = useMemo(() => buildDiscussionGroups(discussions, sortMode), [discussions, sortMode]);
-  const topLevelCount = discussionGroups.length;
+  const activeDiscussionCount = discussionGroups.length;
+  const allTopLevelDiscussionCount = useMemo(
+    () => discussions.filter((discussion) => !discussion.parentId).length,
+    [discussions],
+  );
   const postWithDiscussionCount = useMemo(
-    () => ({ ...post, discuss: topLevelCount }),
-    [post, topLevelCount],
+    () => ({ ...post, discuss: allTopLevelDiscussionCount }),
+    [post, allTopLevelDiscussionCount],
   );
 
   useEffect(() => {
@@ -395,9 +400,16 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
       <section className={styles.discussSection}>
         <div className={styles.statsRow}>
           <div className={styles.statsLeft}>
-            <strong>{topLevelCount} {topLevelCount === 1 ? 'discussion' : 'discussions'}</strong>
+            <strong>{activeDiscussionCount} {activeDiscussionCount === 1 ? 'discussion' : 'discussions'}</strong>
           </div>
           <div className={styles.statsRight}>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${sortMode === 'lgu-response' ? styles.filterBtnActive : ''}`}
+              onClick={() => setSortMode('lgu-response')}
+            >
+              LGU Response
+            </button>
             <button
               type="button"
               className={`${styles.filterBtn} ${sortMode === 'popular' ? styles.filterBtnActive : ''}`}
@@ -438,7 +450,7 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
                     <div className={styles.discussionAuthorRow}>
                       <span className={styles.name}>{discussion.author.fullName}</span>
                       {discussion.isAdmin ? <span className={styles.badge}>Admin</span> : null}
-                      {discussion.isPinned ? <span className={styles.badgePinned}>Pinned</span> : null}
+                      {discussion.isPinned ? <span className={styles.badgePinned}>LGU Response</span> : null}
                     </div>
                     <div className={styles.discussionTime}>{discussion.displayTime}</div>
                   </div>
@@ -579,13 +591,13 @@ export default function DiscussPage({ post, onBack, hideComposer = false, onRepl
           })}
         </div>
 
-        {!loading && !discussionsError && discussions.length === 0 && (
+        {!loading && !discussionsError && discussionGroups.length === 0 && (
           <div className={`${styles.empty} ${hideComposer ? styles.emptyCompact : ''}`}>
             <span className={styles.emptyBee} role="img" aria-label="Bee">
               🐝
             </span>
-            <p>No discussion yet</p>
-            <span>Be the first to add useful context for this feedback.</span>
+            <p>{sortMode === 'lgu-response' ? 'No LGU response yet' : 'No discussion yet'}</p>
+            <span>{sortMode === 'lgu-response' ? 'Official responses from administrators will appear here.' : 'Be the first to add useful context for this feedback.'}</span>
           </div>
         )}
       </section>
@@ -754,9 +766,6 @@ export function DiscussionComposer({ postId, replyingTo, onSent, onCancelReply }
                 >
                   <Paperclip size={18} />
                 </button>
-                <button className={styles.miniIconBtn} type="button">
-                  <At size={18} />
-                </button>
               </div>
             )}
           </div>
@@ -772,14 +781,6 @@ export function DiscussionComposer({ postId, replyingTo, onSent, onCancelReply }
                   onMouseLeave={() => setHoveredIcon(null)}
                 >
                   <Paperclip size={18} weight={hoveredIcon === 'media' ? 'duotone' : 'regular'} />
-                </button>
-                <button 
-                  className={styles.iconBtn} 
-                  type="button"
-                  onMouseEnter={() => setHoveredIcon('mention')}
-                  onMouseLeave={() => setHoveredIcon(null)}
-                >
-                  <At size={18} weight={hoveredIcon === 'mention' ? 'duotone' : 'regular'} />
                 </button>
               </div>
               <button
