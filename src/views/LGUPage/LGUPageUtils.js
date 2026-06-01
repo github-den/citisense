@@ -229,3 +229,52 @@ export function formatHourMetric(hours) {
   const days = Math.max(1, Math.round(hours / 24));
   return `${days} day${days > 1 ? 's' : ''}`;
 }
+
+function formatDuration(hours) {
+  if (hours < 24) return `${Math.max(1, Math.round(hours))}h`;
+  return `${Math.max(1, Math.round(hours / 24))}d`;
+}
+
+// Derives a compact response time label:
+// - No responded posts → 'Xh overdue' / 'Xd overdue' (based on avg pending age)
+// - Avg response ≤ 3 days → 'Xh on-time' / 'Xd on-time'
+// - Avg response > 3 days → 'Xh late' / 'Xd late'
+export function deriveResponseTimeLabel(posts) {
+  const respondedPosts = posts.filter(
+    (p) => p.status && p.status !== 'Under Review'
+  );
+
+  if (respondedPosts.length === 0) {
+    const pendingPosts = posts.filter((p) => !p.status || p.status === 'Under Review');
+    if (pendingPosts.length === 0) return '—';
+    const avgAgeHours = pendingPosts.reduce((sum, p) => {
+      const ageMs = Math.max(0, Date.now() - new Date(p.created_at).getTime());
+      return sum + ageMs / (1000 * 60 * 60);
+    }, 0) / pendingPosts.length;
+    return `${formatDuration(avgAgeHours)} overdue`;
+  }
+
+  const totalHours = respondedPosts.reduce((sum, post) => {
+    const created = new Date(post.created_at).getTime();
+    const responded = post.updated_at
+      ? new Date(post.updated_at).getTime()
+      : created + (3 * 24 * 60 * 60 * 1000);
+    const diffHours = Math.max(0, (responded - created) / (1000 * 60 * 60));
+    return sum + diffHours;
+  }, 0);
+
+  const avgHours = totalHours / respondedPosts.length;
+  if (avgHours <= 72) return `${formatDuration(avgHours)} on-time`;
+  return `${formatDuration(avgHours)} late`;
+}
+
+// Returns average star rating (1-5) from resolved feedbacks that have been rated.
+// Returns a string like '4.2' or null if no ratings exist yet.
+export function deriveSatisfactionScore(posts) {
+  const rated = posts.filter(
+    (p) => p.status === 'Resolved' && p.rating != null && Number.isFinite(Number(p.rating))
+  );
+  if (rated.length === 0) return null;
+  const avg = rated.reduce((sum, p) => sum + Number(p.rating), 0) / rated.length;
+  return avg.toFixed(1);
+}

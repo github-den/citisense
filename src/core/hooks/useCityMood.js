@@ -7,9 +7,28 @@ const FALLBACK = normalizeCityMoodResult({
   breakdown: createEmptyMoodBreakdown(),
 });
 
+// Module-level TTL cache — survives remounts, keyed by `days`
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const cache = new Map(); // key: days → { data, fetchedAt }
+
+function getCached(days) {
+  const entry = cache.get(days);
+  if (!entry) return null;
+  if (Date.now() - entry.fetchedAt > CACHE_TTL_MS) {
+    cache.delete(days);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCached(days, data) {
+  cache.set(days, { data, fetchedAt: Date.now() });
+}
+
 async function fetchCityMoodFallback(days) {
   if (!supabase) return FALLBACK;
 
+  // Use a fixed cutoff so repeated calls within the same session are consistent
   let query = supabase.from('feedbacks').select('final_mood, created_at');
   if (Number.isFinite(days) && days > 0) {
     const cutoff = new Date(Date.now() - (days * 24 * 60 * 60 * 1000)).toISOString();
@@ -28,14 +47,23 @@ async function fetchCityMoodFallback(days) {
     emoji: summary.emoji,
     total: summary.total,
     breakdown: summary.breakdown,
+    confidence: summary.confidence,
   });
 }
 
 export function useCityMood({ days = 7 } = {}) {
-  const [data, setData] = useState(FALLBACK);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => getCached(days) ?? FALLBACK);
+  const [loading, setLoading] = useState(() => !getCached(days));
 
   useEffect(() => {
+    // Return cached result immediately — no fetch needed
+    const cached = getCached(days);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     if (!supabase) { setLoading(false); return; }
 
@@ -43,13 +71,17 @@ export function useCityMood({ days = 7 } = {}) {
       .rpc('get_city_mood', { p_days: days })
       .then(async ({ data: rows, error }) => {
         if (!mounted) return;
+        let result;
         if (error || !rows?.[0]) {
-          const fallback = await fetchCityMoodFallback(days);
-          if (mounted) setData(fallback);
+          result = await fetchCityMoodFallback(days);
         } else {
-          setData(normalizeCityMoodResult(rows[0]));
+          result = normalizeCityMoodResult(rows[0]);
         }
-        if (mounted) setLoading(false);
+        setCached(days, result);
+        if (mounted) {
+          setData(result);
+          setLoading(false);
+        }
       });
 
     return () => { mounted = false; };
@@ -57,4 +89,3 @@ export function useCityMood({ days = 7 } = {}) {
 
   return { data, loading };
 }
-

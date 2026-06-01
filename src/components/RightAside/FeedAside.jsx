@@ -72,7 +72,9 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
           const sorted = Object.entries(counts)
             .sort((a, b) => b[1] - a[1])
             .map(([category]) => category.toLowerCase());
-          setTopCategories(sorted.slice(0, 3));
+          setTopCategories(sorted.slice(0, 3).map(
+            (s) => s.charAt(0).toUpperCase() + s.slice(1)
+          ));
         } else {
           setTopCategories([]);
         }
@@ -131,12 +133,7 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
             </div>
             {cityMoodLabel ? (
               <div className={styles.moodSub}>
-                <div>{percentage}% of feedbacks for the last 30 days is {cityMoodLabel.toLowerCase()}</div>
-                {topCategories.length > 0 && (
-                  <div style={{ marginTop: '2px' }}>
-                    These feedbacks are mostly about {formatTopCategories(topCategories)}
-                  </div>
-                )}
+                {percentage}% of feedbacks for the last 30 days is {cityMoodLabel.toLowerCase()}.{topCategories.length > 0 && ` These feedbacks are mostly about ${formatTopCategories(topCategories)}.`}
               </div>
             ) : null}
           </div>

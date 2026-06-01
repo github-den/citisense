@@ -992,8 +992,8 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: none;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1013,11 +1013,11 @@
 
 .reportModal {
   background: #ffffff;
-  width: 720px;
+  width: 420px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   border-radius: 18px;
-  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.2);
+  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1066,7 +1066,7 @@
 .reportModalBody {
   flex: 1;
   min-height: 0;
-  padding: 0;
+  padding: 20px 20px 4px;
   overflow-y: auto;
 }
 
@@ -1148,7 +1148,6 @@
   justify-content: flex-end;
   gap: 10px;
   padding: 16px 20px 20px;
-  border-top: 1px solid var(--ui-border);
   background: #ffffff;
 }
 

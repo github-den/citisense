@@ -45,6 +45,7 @@ import { showToast } from '../Toast/Toast.jsx';
 import MediaCarousel from '../MediaGrid/MediaCarousel.jsx';
 
 import styles from './FeedCard.module.css';
+import FeedbackTimelineModal from './FeedbackTimelineModal.jsx';
 
 const TYPE_META = {
   complaint: { label: 'Complaint', Icon: Warning, toneClass: styles.typeComplaint },
@@ -440,6 +441,7 @@ const FeedCard = forwardRef(({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [reactsOpen, setReactsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState(null);
   const [hoveredAction, setHoveredAction] = useState(null);
   const pressTimer = useRef(null);
@@ -681,15 +683,12 @@ const FeedCard = forwardRef(({
 
   const confirmDelete = async () => {
     setDeleteConfirmOpen(false);
-    showToast(`[DEBUG] Deleting post id=${post.id}`, 'info');
     try {
       if (post.id.startsWith('demo-')) {
         const { deleteDemoPost } = await import('@core/services/demoPosts.js');
         deleteDemoPost(post.id);
-        showToast('[DEBUG] Demo post deleted.', 'success');
       } else {
         const { supabase } = await import('@core/lib/supabase.js');
-        showToast(`[DEBUG] supabase=${supabase ? 'ok' : 'null'}`, 'info');
         if (supabase) {
           const { error } = await supabase
             .from('feedbacks')
@@ -697,18 +696,15 @@ const FeedCard = forwardRef(({
             .eq('id', post.id);
 
           if (error) {
-            showToast(`[DEBUG] Delete error: ${error.message}`, 'error');
             showToast(error.message || 'Unable to delete feedback.', 'error');
             return;
           }
-          showToast('[DEBUG] Delete succeeded!', 'success');
         }
       }
       showToast('Feedback deleted.', 'success');
       window.location.reload();
     } catch (err) {
       console.error(err);
-      showToast(`[DEBUG] Exception: ${err.message}`, 'error');
       showToast('An error occurred while deleting feedback.', 'error');
     }
   };
@@ -769,7 +765,7 @@ const FeedCard = forwardRef(({
                     <button
                       type="button"
                       className={styles.statusButton}
-                      onClick={() => onViewStatusTimeline?.(post.id)}
+                      onClick={(e) => { e.stopPropagation(); setTimelineOpen(true); }}
                     >
                       <CalendarStar size={14} weight="duotone" aria-hidden="true" />
                       <span>{inlineStatus}</span>
@@ -1055,6 +1051,13 @@ const FeedCard = forwardRef(({
         </div>,
         document.body
       ) : null}
+
+      <FeedbackTimelineModal
+        post={post}
+        isOpen={timelineOpen}
+        onClose={() => setTimelineOpen(false)}
+        currentUserId={currentUserId}
+      />
 
     </article>
   );

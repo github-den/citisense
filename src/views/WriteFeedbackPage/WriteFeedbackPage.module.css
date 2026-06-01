@@ -41,6 +41,10 @@
   animation: toastIn 160ms ease-out, toastOut 180ms ease-in 1.82s forwards;
 }
 
+.validationToastPersistent {
+  animation: toastIn 160ms ease-out !important;
+}
+
 .validationToast svg {
   flex-shrink: 0;
 }
@@ -702,14 +706,14 @@
 }
 
 .btnGhost {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.3);
+  background: var(--ui-surface-hover);
+  color: var(--ui-text-muted);
+  border-color: var(--ui-border);
 }
 
 .btnGhost:hover {
-  background: #dc2626;
-  color: #fff;
+  background: var(--ui-border);
+  color: var(--ui-text);
 }
 
 

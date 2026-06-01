@@ -31,6 +31,7 @@ import MediaCarousel from '../MediaGrid/MediaCarousel.jsx';
 import { queueToastAfterNavigation } from '../Toast/Toast.jsx';
 import { showToast } from '../Toast/Toast.jsx';
 import { supabase } from '@core/lib/supabase.js';
+import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
 
 import styles from '../../views/WriteFeedbackPage/WriteFeedbackPage.module.css';
 
@@ -280,7 +281,7 @@ export default function FeedbackComposerPage({ setPage }) {
           setForm({
             type: post.type || 'complaint',
             service: post.service || '',
-            barangay: post.incident_location || post.barangay || '',
+            barangay: normalizeIncidentLocationLabel(post.incident_location || post.barangay || '') || '',
             content: post.caption || '',
           });
           setSelectedTypes([post.type].filter(Boolean));
@@ -314,6 +315,23 @@ export default function FeedbackComposerPage({ setPage }) {
       if (item.isLocal) URL.revokeObjectURL(item.src);
     });
   }, []);
+
+  // Always start fresh when entering write mode (no edit/draft/caption params)
+  useEffect(() => {
+    const editPostId = searchParams.get('edit');
+    const draftId = searchParams.get('draft');
+    const caption = searchParams.get('caption');
+    if (!editPostId && !draftId && !caption) {
+      setForm(INITIAL_FORM);
+      setSelectedTypes([]);
+      setCurrentDraftId(null);
+      setMediaItems((current) => {
+        current.forEach((item) => { if (item.isLocal) URL.revokeObjectURL(item.src); });
+        return [];
+      });
+    }
+  }, [searchParams]);
+
 
   const checks = useMemo(() => getQualityChecks(form), [form]);
   const score = checks.filter((check) => check.done).length;
@@ -384,8 +402,9 @@ export default function FeedbackComposerPage({ setPage }) {
       return;
     }
 
+    const isEdit = !!searchParams.get('edit');
     setBusy(true);
-    showValidationNotice('Posting your feedback...', null);
+    showValidationNotice(isEdit ? 'Saving changes...' : 'Posting...', null);
 
     try {
       await submit();
@@ -556,28 +575,6 @@ export default function FeedbackComposerPage({ setPage }) {
     const editPostId = searchParams.get('edit');
 
     if (editPostId) {
-      let predictionColumns = {
-        predicted_mood: null,
-        predicted_mood_confidence: null,
-        prediction_model_version: null,
-      };
-
-      try {
-        const aiResponse = await fetch('/api/feedback-ai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ task: 'mood_prediction', content: form.content.trim() })
-        });
-        const prediction = await aiResponse.json().catch(() => null);
-        if (prediction && !prediction.error) {
-          predictionColumns.predicted_mood = prediction.mood;
-          predictionColumns.predicted_mood_confidence = prediction.confidence;
-          predictionColumns.prediction_model_version = prediction.prediction_model_version || prediction.source;
-        }
-      } catch (error) {
-        console.error('Unable to generate feedback mood prediction:', error);
-      }
-
       if (editPostId.startsWith('demo-')) {
         const { updateDemoPost } = await import('@core/services/demoPosts.js');
         updateDemoPost(editPostId, {
@@ -588,55 +585,59 @@ export default function FeedbackComposerPage({ setPage }) {
           location: form.barangay,
           imageUrl: imageUrls[0] ?? null,
           images: imageUrls.slice(1),
-          ...predictionColumns,
         });
       } else {
-        showToast(`[DEBUG] editPostId: ${editPostId}`, 'info');
-
         if (!supabase) {
           setBusy(false);
-          showToast('[DEBUG] supabase is null/undefined', 'error');
           showValidationNotice('Supabase is not configured.');
           return;
         }
 
-        const payload = {
-          caption: form.content.trim(),
-          type: form.type,
-          service: form.service,
-          incident_location: form.barangay,
-          barangay: form.barangay,
-          image_url: imageUrls[0] ?? null,
-          image_urls: imageUrls.slice(1),
-          ...predictionColumns,
-        };
-
-        showToast(`[DEBUG] Calling supabase.update on feedbacks id=${editPostId}`, 'info');
-
         const { error } = await supabase
           .from('feedbacks')
-          .update(payload)
+          .update({
+            caption: form.content.trim(),
+            type: form.type,
+            service: form.service,
+            incident_location: form.barangay,
+            image_url: imageUrls[0] ?? null,
+            image_urls: imageUrls.slice(1),
+          })
           .eq('id', editPostId);
 
         if (error) {
           setBusy(false);
-          showToast(`[DEBUG] Update error: ${error.message}`, 'error');
           showValidationNotice(error.message ?? 'Update failed.');
           return;
         }
 
-        showToast('[DEBUG] Update succeeded!', 'success');
+        // Fire AI mood prediction in background — does not block save
+        fetch('/api/feedback-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: 'mood_prediction', content: form.content.trim() }),
+        })
+          .then((r) => r.json().catch(() => null))
+          .then((prediction) => {
+            if (prediction && !prediction.error) {
+              supabase.from('feedbacks').update({
+                predicted_mood: prediction.mood,
+                predicted_mood_confidence: prediction.confidence,
+                prediction_model_version: prediction.prediction_model_version || prediction.source,
+              }).eq('id', editPostId).then(() => {});
+            }
+          })
+          .catch(() => {});
       }
 
-      showValidationNotice('Feedback updated');
-
+      queueToastAfterNavigation('Feedback updated!', { type: 'success', duration: 2600 });
+      window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
       window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
-        
+        setPage?.('back');
         window.setTimeout(() => {
-          setPage?.('feed');
-        }, 500);
-      }, 1000);
+          window.dispatchEvent(new CustomEvent('citisense:flush-pending-toasts'));
+        }, 220);
+      }, 700);
 
       return;
     }
@@ -670,15 +671,14 @@ export default function FeedbackComposerPage({ setPage }) {
       deleteDraftMediaItems(currentDraftId).catch(() => {});
     }
 
-    showValidationNotice('Feedback posted');
-
+    queueToastAfterNavigation('Feedback posted!', { type: 'success', duration: 2600 });
+    window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
     window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
-      
+      setPage?.('feed');
       window.setTimeout(() => {
-        setPage?.('feed');
-      }, 500);
-    }, 1000);
+        window.dispatchEvent(new CustomEvent('citisense:flush-pending-toasts'));
+      }, 220);
+    }, 700);
   }
 
   function handleSubmit(e) {
@@ -713,8 +713,16 @@ export default function FeedbackComposerPage({ setPage }) {
               </div>
             )}
             actions={validationNotice ? (
-              <div className={`${styles.validationToast} ${validationNotice === 'Feedback posted' ? styles.validationToastSuccess : ''}`} role="status" aria-live="polite">
-                {validationNotice === 'Feedback posted' ? (
+              <div
+                className={[
+                  styles.validationToast,
+                  busy ? styles.validationToastPersistent : '',
+                  (validationNotice === 'Feedback posted' || validationNotice === 'Feedback updated') ? styles.validationToastSuccess : '',
+                ].filter(Boolean).join(' ')}
+                role="status"
+                aria-live="polite"
+              >
+                {(validationNotice === 'Feedback posted' || validationNotice === 'Feedback updated') ? (
                   <CheckCircle size={17} weight="fill" aria-hidden="true" />
                 ) : (
                   <WarningCircle size={17} weight="fill" aria-hidden="true" />
@@ -870,7 +878,7 @@ export default function FeedbackComposerPage({ setPage }) {
 
             <div className={styles.actions}>
               <button className={`${styles.btn} ${styles.btnGhost}`} type="button" onClick={handleBackOrDiscard}>
-                Discard
+                Discard changes
               </button>
               <div className={styles.actionDivider} aria-hidden="true" />
               {!searchParams.get('edit') && (

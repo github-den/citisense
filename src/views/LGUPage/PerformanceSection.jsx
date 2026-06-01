@@ -4,7 +4,7 @@ import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, XAxis, YAxis } fro
 import PageSectionHeader from '../../components/ui/PageSectionHeader.jsx';
 import SearchFilterSelect from '../../components/ui/SearchFilterSelect.jsx';
 import { SERVICE_CATEGORY_OPTIONS } from '../../constants/index.js';
-import { getMoodEmoji, formatHourMetric, TYPE_COLORS, TIME_FILTER_OPTIONS } from './LGUPageUtils.js';
+import { getMoodEmoji, TYPE_COLORS, TIME_FILTER_OPTIONS } from './LGUPageUtils.js';
 import styles from './LGUPage.module.css';
 
 export default function PerformanceTab({
@@ -16,9 +16,9 @@ export default function PerformanceTab({
   setPerformanceTime,
   availableLocations,
   filteredMood,
-  averageResponseHours,
+  averageResponseLabel,
   resolutionRate,
-  satisfactionRate,
+  satisfactionScore,
   feedbacksChart,
   complaintsChart,
   verifiedChart,
@@ -82,8 +82,9 @@ export default function PerformanceTab({
                 <span className={styles.kpiTitle}>Mood</span>
                 <span className={styles.kpiIcon}><SmileyWink size={18} weight="duotone" /></span>
               </div>
-              <div className={styles.kpiHeroEmoji}>{getMoodEmoji(filteredMood.label)}</div>
-              <span className={styles.kpiValueLabel}>{filteredMood.label}</span>
+              <strong className={`${styles.kpiValue} ${styles.kpiValueMood}`}>
+                {getMoodEmoji(filteredMood.label)}&nbsp;{filteredMood.label}
+              </strong>
               <span className={styles.kpiValueLabel}>{filteredMood.detail}</span>
             </article>
 
@@ -92,8 +93,8 @@ export default function PerformanceTab({
                 <span className={styles.kpiTitle}>Average response time</span>
                 <span className={styles.kpiIcon}><ClockCountdown size={18} weight="duotone" /></span>
               </div>
-              <strong className={styles.kpiValue}>{formatHourMetric(averageResponseHours)}</strong>
-              <span className={styles.kpiValueLabel}>from the feedbacks</span>
+              <strong className={`${styles.kpiValue} ${styles.kpiValueMood}`}>{averageResponseLabel}</strong>
+              <span className={styles.kpiValueLabel}>for responding to feedbacks</span>
             </article>
 
             <article className={styles.kpiCard}>
@@ -110,8 +111,10 @@ export default function PerformanceTab({
                 <span className={styles.kpiTitle}>Satisfaction rate</span>
                 <span className={styles.kpiIcon}><StarHalf size={18} weight="duotone" /></span>
               </div>
-              <strong className={styles.kpiValue}>{satisfactionRate}%</strong>
-              <span className={styles.kpiValueLabel}>positive feedback signal</span>
+              <strong className={`${styles.kpiValue} ${styles.kpiValueMood}`}>
+                {satisfactionScore ?? '—'}/5
+              </strong>
+              <span className={styles.kpiValueLabel}>based on resolved feedbacks</span>
             </article>
           </div>
 

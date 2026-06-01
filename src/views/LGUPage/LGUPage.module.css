@@ -540,6 +540,11 @@
   letter-spacing: -0.05em;
 }
 
+.kpiValueMood {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
 .kpiValueLabel {
   color: var(--text-2);
   font-size: 14px;

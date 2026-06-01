@@ -10,7 +10,8 @@ import PerformanceSection from './PerformanceSection.jsx';
 import {
   filterPosts,
   deriveFilteredMood,
-  estimateAverageResponseHours,
+  deriveResponseTimeLabel,
+  deriveSatisfactionScore,
   VERIFIED_STATUSES,
   NOT_ACCEPTED_STATUSES,
   TYPE_COLORS,
@@ -34,10 +35,9 @@ export default function LGUPerformancePage() {
   const filteredMood = useMemo(() => deriveFilteredMood(performancePosts), [performancePosts]);
   const verifiedCount = performancePosts.filter((post) => VERIFIED_STATUSES.includes(post.status)).length;
   const resolvedCount = performancePosts.filter((post) => post.status === 'Resolved').length;
-  const positiveSignals = performancePosts.filter((post) => post.type === 'compliment' || post.status === 'Resolved').length;
-  const satisfactionRate = performancePosts.length > 0 ? Math.round((positiveSignals / performancePosts.length) * 100) : 0;
   const resolutionRate = verifiedCount > 0 ? Math.round((resolvedCount / verifiedCount) * 100) : 0;
-  const averageResponseHours = useMemo(() => estimateAverageResponseHours(performancePosts), [performancePosts]);
+  const satisfactionScore = useMemo(() => deriveSatisfactionScore(performancePosts), [performancePosts]);
+  const averageResponseLabel = useMemo(() => deriveResponseTimeLabel(performancePosts), [performancePosts]);
 
   const feedbacksChart = useMemo(() => ([
     { name: 'Complaint', value: performancePosts.filter((post) => post.type === 'complaint').length, color: TYPE_COLORS.complaint },
@@ -74,9 +74,9 @@ export default function LGUPerformancePage() {
         setPerformanceTime={setPerformanceTime}
         availableLocations={availableLocations}
         filteredMood={filteredMood}
-        averageResponseHours={averageResponseHours}
+        averageResponseLabel={averageResponseLabel}
         resolutionRate={resolutionRate}
-        satisfactionRate={satisfactionRate}
+        satisfactionScore={satisfactionScore}
         feedbacksChart={feedbacksChart}
         complaintsChart={complaintsChart}
         verifiedChart={verifiedChart}
