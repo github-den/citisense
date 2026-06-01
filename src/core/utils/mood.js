@@ -1,6 +1,6 @@
 export const MOOD_KEYS = ['grateful', 'satisfied', 'sad', 'angry'];
-export const PREDICTION_PUBLIC_THRESHOLD = 0.3;
-export const PREDICTION_INTERNAL_THRESHOLD = 0.3;
+export const PREDICTION_PUBLIC_THRESHOLD = 0.0;
+export const PREDICTION_INTERNAL_THRESHOLD = 0.0;
 
 export const MOOD_LABELS = {
   grateful: 'Grateful',
@@ -77,15 +77,13 @@ function resolveTopMood(breakdown, latestByMood = {}) {
   const topMoods = MOOD_KEYS.filter((key) => (breakdown[key] ?? 0) === topCount);
   if (topMoods.length === 1) return { mood: topMoods[0], hasTie: false };
 
-  const ranked = topMoods
-    .map((mood) => ({ mood, latest: latestByMood[mood] ?? null }))
-    .sort((left, right) => (right.latest ?? -1) - (left.latest ?? -1));
+  // Strict priority tie-breaker: angry, sad, grateful, satisfied
+  const PRIORITY = ['angry', 'sad', 'grateful', 'satisfied'];
+  const bestMood = topMoods.reduce((best, current) => 
+    PRIORITY.indexOf(current) < PRIORITY.indexOf(best) ? current : best
+  );
 
-  if (ranked[0]?.latest != null && ranked[0].latest !== ranked[1]?.latest) {
-    return { mood: ranked[0].mood, hasTie: false };
-  }
-
-  return { mood: null, hasTie: true };
+  return { mood: bestMood, hasTie: false };
 }
 
 export function finalizeMoodSummary(breakdownInput, latestByMood = {}, options = {}) {
@@ -107,7 +105,7 @@ export function finalizeMoodSummary(breakdownInput, latestByMood = {}, options =
     };
   }
 
-  const minTotal = Number.isFinite(options.minTotal) ? options.minTotal : 3;
+  const minTotal = Number.isFinite(options.minTotal) ? options.minTotal : 4;
   const minShare = Number.isFinite(options.minShare) ? options.minShare : 0.6;
   const { mood: dominantMood, hasTie } = resolveTopMood(breakdown, latestByMood);
   const confidence = dominantMood ? breakdown[dominantMood] / total : 0;

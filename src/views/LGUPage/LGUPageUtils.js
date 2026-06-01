@@ -166,15 +166,17 @@ export function filterPosts(posts, service, location, timeRange = 'all') {
 
 export function deriveFilteredMood(posts) {
   const summary = summarizeMoodFromPosts(posts, {
-    allowPrediction: false,
+    allowPrediction: true,
     minTotal: 1,
     minShare: 0,
   });
   if (summary.mood) {
+    const pct = Math.round(summary.confidence * 100);
+    const lowerMood = formatMoodLabel(summary.mood).toLowerCase();
     return {
       label: formatMoodLabel(summary.mood),
-      value: Math.round(summary.confidence * 100),
-      detail: `${summary.total} feedback${summary.total === 1 ? '' : 's'} in this range`,
+      value: pct,
+      detail: `${pct}% of feedbacks is ${lowerMood}`,
     };
   }
 
@@ -182,7 +184,7 @@ export function deriveFilteredMood(posts) {
     return {
       label: 'Mixed mood',
       value: 0,
-      detail: `${summary.total} feedback${summary.total === 1 ? '' : 's'} are evenly split`,
+      detail: '0% of feedbacks',
     };
   }
 
@@ -190,14 +192,14 @@ export function deriveFilteredMood(posts) {
     return {
       label: 'No mood data yet',
       value: 0,
-      detail: 'No feedbacks recorded in this range',
+      detail: '0% of feedbacks',
     };
   }
 
   return {
     label: 'No mood data yet',
     value: 0,
-    detail: 'These feedbacks still need mood data',
+    detail: '0% of feedbacks',
   };
 }
 

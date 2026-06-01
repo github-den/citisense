@@ -29,6 +29,8 @@ import { dedupeMediaItems, getMediaGridModel, inferMediaType } from '@core/utils
 import SearchFilterSelect from '../ui/SearchFilterSelect.jsx';
 import MediaCarousel from '../MediaGrid/MediaCarousel.jsx';
 import { queueToastAfterNavigation } from '../Toast/Toast.jsx';
+import { showToast } from '../Toast/Toast.jsx';
+import { supabase } from '@core/lib/supabase.js';
 
 import styles from '../../views/WriteFeedbackPage/WriteFeedbackPage.module.css';
 
@@ -77,20 +79,6 @@ function createDraftId() {
   return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function hasOutsideJurisdiction(value) {
-  return /(manila|quezon city|cebu|davao|baguio|makati|pasig|taguig)/i.test(String(value ?? ''));
-}
-
-async function runFeedbackAiTask(payload) {
-  const response = await fetch('/api/feedback-ai', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error('AI analysis is unavailable.');
-  return response.json();
-}
-
 function normalizeText(value) {
   return String(value ?? '').toLowerCase().replace(/[^a-z0-9/ ]+/g, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -111,54 +99,6 @@ function getFeedbackSubject(form) {
     .join(' ');
 
   return keywords || form.service || 'civic concern';
-}
-
-function findFlags(form, mediaItems) {
-  const content = form.content.trim();
-  const flags = [];
-  const tips = [];
-  let rejected = false;
-  let rejectionReason = '';
-
-  // 1. Jurisdiction Check (Blocking)
-  if (hasOutsideJurisdiction(`${form.location} ${content}`)) {
-    rejected = true;
-    rejectionReason = 'The incident appears to be outside the vicinity of Urdaneta.';
-    tips.push('Only reports within Urdaneta City are accepted.');
-  }
-
-  // Content Flags (Non-blocking)
-  if (/([a-z])\1{5,}/i.test(content) || /^[^a-zA-Z0-9\s]{8,}$/.test(content.replace(/\s+/g, ''))) {
-    flags.push('Gibberish');
-  }
-
-  if (content.split(/\s+/).filter(Boolean).length < 6) {
-    flags.push('Lacks actionable details');
-  }
-
-  if (!form.service && !/(road|street|drain|garbage|water|permit|health|traffic|light|office|barangay|service|school|market)/i.test(content)) {
-    flags.push('No civic relevance');
-  }
-
-  // 3. Jurisdiction Check
-  if (mediaItems.some((item) => /(ai|generated)/i.test(item.label ?? item.src ?? ''))) {
-    flags.push('AI-generated media');
-  }
-
-  if (/(09\d{9}|\b\d{11}\b|@|gmail\.com|yahoo\.com|hotmail\.com)/i.test(content)) {
-    flags.push('Contains personal information');
-  }
-
-  if (/!{3,}|\b(hate|worst|useless|grabe|sobrang pangit)\b/i.test(content)) {
-    flags.push('Emotional/foul language');
-  }
-
-  return {
-    rejected,
-    rejectionReason,
-    flags: [...new Set(flags)],
-    tips: [...new Set(tips)],
-  };
 }
 
 function CheckRow({ label, done, statusLabel }) {
@@ -214,7 +154,7 @@ export default function FeedbackComposerPage({ setPage }) {
   const [status, setStatus] = useState(null);
   const [error, setError] = useState('');
   const [mediaItems, setMediaItems] = useState([]);
-  const [reviewResult, setReviewResult] = useState(null);
+
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [validationNotice, setValidationNotice] = useState('');
   const [isPosted, setIsPosted] = useState(false);
@@ -294,6 +234,66 @@ export default function FeedbackComposerPage({ setPage }) {
     }
 
     restoreDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    const editPostId = searchParams.get('edit');
+    if (!editPostId) return undefined;
+
+    let cancelled = false;
+
+    async function restoreEdit() {
+      if (editPostId.startsWith('demo-')) {
+        const { listDemoPosts } = await import('@core/services/demoPosts.js');
+        const demoPosts = listDemoPosts();
+        const post = demoPosts.find(p => p.id === editPostId);
+        if (cancelled) return;
+        if (post) {
+          setForm({
+            type: post.type || 'complaint',
+            service: post.service || '',
+            barangay: post.barangay || '',
+            content: post.content || '',
+          });
+          setSelectedTypes([post.type].filter(Boolean));
+          setMediaItems(
+            [post.imageUrl, ...(post.images || [])]
+              .filter(Boolean)
+              .map((src, i) => ({ id: `existing-${i}`, src, isLocal: false }))
+          );
+        }
+      } else {
+        const { supabase } = await import('@core/lib/supabase.js');
+        if (!supabase) return;
+        const { data: post, error } = await supabase
+          .from('feedbacks')
+          .select('*')
+          .eq('id', editPostId)
+          .single();
+
+        if (cancelled) return;
+        if (post && !error) {
+          setForm({
+            type: post.type || 'complaint',
+            service: post.service || '',
+            barangay: post.incident_location || post.barangay || '',
+            content: post.caption || '',
+          });
+          setSelectedTypes([post.type].filter(Boolean));
+          setMediaItems(
+            [post.image_url, ...(post.image_urls || [])]
+              .filter(Boolean)
+              .map((src, i) => ({ id: `existing-${i}`, src, isLocal: false }))
+          );
+        }
+      }
+    }
+
+    restoreEdit();
 
     return () => {
       cancelled = true;
@@ -388,28 +388,7 @@ export default function FeedbackComposerPage({ setPage }) {
     showValidationNotice('Posting your feedback...', null);
 
     try {
-      // 1. Content Flags & Jurisdiction Check
-      const reviewResult = await runFeedbackAiTask({
-        task: 'content_flags',
-        type: form.type,
-        service: form.service,
-        barangay: form.barangay,
-        location: form.barangay,
-        content: form.content,
-        mediaLabels: mediaItems.map((item) => item.label).filter(Boolean),
-      }).catch(() => findFlags(form, mediaItems));
-
-      setReviewResult(reviewResult);
-
-      if (reviewResult.rejected) {
-        showValidationNotice(reviewResult.rejectionReason || 'Please review the flags below.');
-        setBusy(false);
-        return;
-      }
-
-      showValidationNotice('Posting your feedback...', null);
-
-      await submit(reviewResult);
+      await submit();
     } catch (err) {
       setBusy(false);
       showValidationNotice('Submission failed. Please try again.');
@@ -550,12 +529,10 @@ export default function FeedbackComposerPage({ setPage }) {
     requireAuth(handleNext, 'Sign in to submit your report.');
   }
 
-  async function submit(reviewResultOverride = null) {
+  async function submit() {
     setBusy(true);
     setError('');
     setStatus(null);
-
-    const currentReviewResult = reviewResultOverride || reviewResult;
 
     let uploadedUrls = [];
     const localFiles = mediaItems.filter((item) => item.isLocal && item.file).map((item) => item.file);
@@ -576,6 +553,94 @@ export default function FeedbackComposerPage({ setPage }) {
     const retainedUrls = mediaItems.filter((item) => !item.isLocal).map((item) => item.src);
     const imageUrls = dedupeMediaItems([...retainedUrls, ...uploadedUrls]).slice(0, MAX_MEDIA_ITEMS);
 
+    const editPostId = searchParams.get('edit');
+
+    if (editPostId) {
+      let predictionColumns = {
+        predicted_mood: null,
+        predicted_mood_confidence: null,
+        prediction_model_version: null,
+      };
+
+      try {
+        const aiResponse = await fetch('/api/feedback-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task: 'mood_prediction', content: form.content.trim() })
+        });
+        const prediction = await aiResponse.json().catch(() => null);
+        if (prediction && !prediction.error) {
+          predictionColumns.predicted_mood = prediction.mood;
+          predictionColumns.predicted_mood_confidence = prediction.confidence;
+          predictionColumns.prediction_model_version = prediction.prediction_model_version || prediction.source;
+        }
+      } catch (error) {
+        console.error('Unable to generate feedback mood prediction:', error);
+      }
+
+      if (editPostId.startsWith('demo-')) {
+        const { updateDemoPost } = await import('@core/services/demoPosts.js');
+        updateDemoPost(editPostId, {
+          content: form.content.trim(),
+          type: form.type,
+          service: form.service,
+          barangay: form.barangay,
+          location: form.barangay,
+          imageUrl: imageUrls[0] ?? null,
+          images: imageUrls.slice(1),
+          ...predictionColumns,
+        });
+      } else {
+        showToast(`[DEBUG] editPostId: ${editPostId}`, 'info');
+
+        if (!supabase) {
+          setBusy(false);
+          showToast('[DEBUG] supabase is null/undefined', 'error');
+          showValidationNotice('Supabase is not configured.');
+          return;
+        }
+
+        const payload = {
+          caption: form.content.trim(),
+          type: form.type,
+          service: form.service,
+          incident_location: form.barangay,
+          barangay: form.barangay,
+          image_url: imageUrls[0] ?? null,
+          image_urls: imageUrls.slice(1),
+          ...predictionColumns,
+        };
+
+        showToast(`[DEBUG] Calling supabase.update on feedbacks id=${editPostId}`, 'info');
+
+        const { error } = await supabase
+          .from('feedbacks')
+          .update(payload)
+          .eq('id', editPostId);
+
+        if (error) {
+          setBusy(false);
+          showToast(`[DEBUG] Update error: ${error.message}`, 'error');
+          showValidationNotice(error.message ?? 'Update failed.');
+          return;
+        }
+
+        showToast('[DEBUG] Update succeeded!', 'success');
+      }
+
+      showValidationNotice('Feedback updated');
+
+      window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('citicontrol:trigger-loader'));
+        
+        window.setTimeout(() => {
+          setPage?.('feed');
+        }, 500);
+      }, 1000);
+
+      return;
+    }
+
     const payload = {
       userId: session?.user?.id,
       content: form.content.trim(),
@@ -589,7 +654,7 @@ export default function FeedbackComposerPage({ setPage }) {
         username: session?.user?.user_metadata?.username,
         avatar: session?.user?.user_metadata?.avatar,
       },
-      flags: currentReviewResult?.flags || [],
+      flags: [],
     };
 
     const result = await createFeedbackPost(payload);
@@ -638,10 +703,12 @@ export default function FeedbackComposerPage({ setPage }) {
             icon={PencilSimpleLine}
             title={(
               <div className={styles.inlineHeader}>
-                <span>Write Feedback</span>
+                <span>{searchParams.get('edit') ? 'Edit Feedback' : 'Write Feedback'}</span>
                 <span className={styles.headerSep}>|</span>
                 <span className={styles.headerSub}>
-                  Submit a clear civic report city admins can verify and route.
+                  {searchParams.get('edit')
+                    ? 'Modify your civic report details and save updates.'
+                    : 'Submit a clear civic report city admins can verify and route.'}
                 </span>
               </div>
             )}
@@ -806,9 +873,13 @@ export default function FeedbackComposerPage({ setPage }) {
                 Discard
               </button>
               <div className={styles.actionDivider} aria-hidden="true" />
-              <button className={`${styles.btn} ${styles.btnSecondary}`} type="button" onClick={openSaveDraftModal}>Save Draft</button>
+              {!searchParams.get('edit') && (
+                <>
+                  <button className={`${styles.btn} ${styles.btnSecondary}`} type="button" onClick={openSaveDraftModal}>Save Draft</button>
+                </>
+              )}
               <button className={`${styles.btn} ${styles.btnPrimary}`} type="submit" disabled={busy}>
-                {busy ? 'Posting...' : 'Post'}
+                {busy ? (searchParams.get('edit') ? 'Saving...' : 'Posting...') : (searchParams.get('edit') ? 'Save changes' : 'Post')}
               </button>
             </div>
           </div>
@@ -845,13 +916,15 @@ export default function FeedbackComposerPage({ setPage }) {
       {confirmModal === 'discard' ? (
         <FeedbackComposerModal
           mounted={mounted}
-          title="Discard this feedback?"
-          body="Your current changes will be removed. This action cannot be undone."
+          title={searchParams.get('edit') ? 'Discard changes?' : 'Discard this feedback?'}
+          body={searchParams.get('edit')
+            ? 'Your unsaved changes will be lost. Your original feedback will remain unchanged.'
+            : 'Your current changes will be removed. This action cannot be undone.'}
           onClose={closeConfirmModal}
           actions={(
             <>
               <button type="button" className={styles.modalGhostButton} onClick={closeConfirmModal}>Cancel</button>
-              <button type="button" className={styles.modalDangerButton} onClick={confirmDiscard}>Discard</button>
+              <button type="button" className={styles.modalGhostButton} onClick={confirmDiscard}>Discard</button>
             </>
           )}
         />
@@ -860,13 +933,19 @@ export default function FeedbackComposerPage({ setPage }) {
       {confirmModal === 'post' ? (
         <FeedbackComposerModal
           mounted={mounted}
-          title="Post this feedback?"
-          body="This will submit your feedback for review and publishing."
+          title={searchParams.get('edit') ? 'Save changes?' : 'Post this feedback?'}
+          body={
+            searchParams.get('edit')
+              ? 'This will update your feedback details and send it for re-evaluation.'
+              : 'This will submit your feedback for review and publishing.'
+          }
           onClose={closeConfirmModal}
           actions={(
             <>
               <button type="button" className={styles.modalGhostButton} onClick={closeConfirmModal}>Cancel</button>
-              <button type="button" className={styles.modalPrimaryButton} onClick={confirmPost}>Post</button>
+              <button type="button" className={styles.modalPrimaryButton} onClick={confirmPost}>
+                {searchParams.get('edit') ? 'Save' : 'Post'}
+              </button>
             </>
           )}
         />

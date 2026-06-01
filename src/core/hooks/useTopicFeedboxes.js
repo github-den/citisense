@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@core/lib/supabase.js';
+import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
 
 function isSchemaMismatch(error) {
   const message = String(error?.message ?? '').toLowerCase();
@@ -99,6 +100,54 @@ export function useTopicFeedboxes({ autoRefreshMs = 30 * 60 * 1000 } = {}) {
           raisesByTopic.set(topicId, (raisesByTopic.get(topicId) ?? 0) + (raisesMap.get(postId) ?? 0));
         });
 
+        // Fetch service + incident_location to compute top service/location per topic
+        const serviceMap = new Map(); // postId -> { service, location }
+        if (uniquePostIds.length > 0) {
+          const chunkSize = 500;
+          for (let i = 0; i < uniquePostIds.length; i += chunkSize) {
+            const chunk = uniquePostIds.slice(i, i + chunkSize);
+            const { data: svcData } = await supabase
+              .from('feedbacks')
+              .select('id, service, incident_location')
+              .in('id', chunk);
+            (svcData ?? []).forEach((row) => {
+              serviceMap.set(String(row.id), {
+                service: row.service ?? null,
+                location: normalizeIncidentLocationLabel(row.incident_location) || null,
+              });
+            });
+          }
+        }
+
+        // For each topic, count service & location occurrences
+        const topicServiceCounts = new Map(); // topicId -> Map<service, count>
+        const topicLocationCounts = new Map(); // topicId -> Map<location, count>
+        mappingRows.forEach((row) => {
+          const topicId = String(row.topic_id ?? '');
+          const postId = String(row.post_id ?? '');
+          if (!topicId || !postId) return;
+          const info = serviceMap.get(postId);
+          if (!info) return;
+
+          if (info.service) {
+            if (!topicServiceCounts.has(topicId)) topicServiceCounts.set(topicId, new Map());
+            const m = topicServiceCounts.get(topicId);
+            m.set(info.service, (m.get(info.service) ?? 0) + 1);
+          }
+          if (info.location) {
+            if (!topicLocationCounts.has(topicId)) topicLocationCounts.set(topicId, new Map());
+            const m = topicLocationCounts.get(topicId);
+            m.set(info.location, (m.get(info.location) ?? 0) + 1);
+          }
+        });
+
+        function topEntry(countMap) {
+          if (!countMap) return null;
+          let topKey = null, topVal = 0;
+          countMap.forEach((v, k) => { if (v > topVal) { topVal = v; topKey = k; } });
+          return topKey;
+        }
+
         const mapped = rows.map((row) => ({
           id: row.id,
           title: row.title,
@@ -108,6 +157,8 @@ export function useTopicFeedboxes({ autoRefreshMs = 30 * 60 * 1000 } = {}) {
           created_at: row.created_at ?? null,
           post_count: countMap.get(String(row.id)) ?? 0,
           raises_count: raisesByTopic.get(String(row.id)) ?? 0,
+          top_service: topEntry(topicServiceCounts.get(String(row.id))),
+          top_location: topEntry(topicLocationCounts.get(String(row.id))),
         }));
 
         setTopics(mapped);

@@ -80,6 +80,7 @@ export function mapPost(row) {
     moodSource: row.mood_source ?? reactionSummary?.source ?? 'none',
     predictedMood: row.predicted_mood ?? null,
     predictedMoodConfidence: Number(row.predicted_mood_confidence ?? 0),
+    predictedMoodBreakdown: row.predicted_mood_breakdown ?? null,
     predictionModelVersion: row.prediction_model_version ?? null,
     // Preservation of hydrated states
     myReaction: row.myReaction ?? null,

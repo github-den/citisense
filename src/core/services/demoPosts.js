@@ -97,3 +97,9 @@ export function searchDemoPosts(query) {
     return hay.includes(q);
   });
 }
+
+export function deleteDemoPost(postId) {
+  const existing = listDemoPosts();
+  const next = existing.filter((row) => row?.id !== postId);
+  window.localStorage.setItem(DEMO_POSTS_KEY, JSON.stringify(next));
+}

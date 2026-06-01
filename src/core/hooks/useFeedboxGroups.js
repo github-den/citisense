@@ -11,18 +11,22 @@ const FEEDBACK_SELECT_VARIANTS = [
     id, user_id, caption, type, status, service,
     barangay, location:incident_location, feedback_no, raises_count, discuss_count,
     reacts_count, final_mood, mood_confidence, mood_source,
-    predicted_mood, predicted_mood_confidence, prediction_model_version,
+    predicted_mood, predicted_mood_confidence, predicted_mood_breakdown, prediction_model_version,
     reaction_breakdown, created_at, updated_at, image_url, image_urls
   `,
   `
     id, user_id, caption, type, status, service,
     barangay, location:incident_location, feedback_no, raises_count, discuss_count,
-    reacts_count, created_at, updated_at, image_url, image_urls
+    reacts_count, final_mood, mood_confidence, mood_source,
+    predicted_mood, predicted_mood_confidence, predicted_mood_breakdown, prediction_model_version,
+    reaction_breakdown, created_at, updated_at, image_url, image_urls
   `,
   `
     id, user_id, caption, type, status, service,
     location:incident_location, feedback_no, raises_count, discuss_count,
-    reacts_count, created_at, updated_at, image_url, image_urls
+    reacts_count, final_mood, mood_confidence, mood_source,
+    predicted_mood, predicted_mood_confidence, predicted_mood_breakdown, prediction_model_version,
+    reaction_breakdown, created_at, updated_at, image_url, image_urls
   `,
 ];
 

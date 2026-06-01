@@ -73,6 +73,8 @@ async function fetchSavedFeedbackRows(savedIds) {
     id, user_id, caption, type, status, service,
     location:incident_location, feedback_no, raises_count, discuss_count,
     reacts_count, created_at, updated_at, image_url, image_urls,
+    final_mood, mood_confidence, mood_source, reaction_breakdown,
+    predicted_mood, predicted_mood_confidence, predicted_mood_breakdown, prediction_model_version,
     profiles ( username, avatar )
   `;
 
@@ -97,7 +99,7 @@ async function fetchSavedFeedbackRows(savedIds) {
 
   const { data: flatRows, error: flatError } = await supabase
     .from('feedbacks')
-    .select('id, user_id, caption, type, status, service, location:incident_location, feedback_no, raises_count, discuss_count, reacts_count, created_at, updated_at, image_url, image_urls')
+    .select('id, user_id, caption, type, status, service, location:incident_location, feedback_no, raises_count, discuss_count, reacts_count, created_at, updated_at, image_url, image_urls, final_mood, mood_confidence, mood_source, reaction_breakdown, predicted_mood, predicted_mood_confidence, predicted_mood_breakdown, prediction_model_version')
     .in('id', dbIds);
 
   if (flatError) throw flatError;

@@ -85,6 +85,8 @@ async function fetchFullRowsByIds(admin, table, ids) {
       id, user_id, caption, type, status, service,
       location:incident_location, feedback_no, raises_count, discuss_count,
       reacts_count, created_at, image_url, image_urls,
+      final_mood, mood_confidence, mood_source, reaction_breakdown,
+      predicted_mood, predicted_mood_confidence, predicted_mood_breakdown, prediction_model_version,
       profiles ( username, avatar )
     `)
     .in('id', ids);

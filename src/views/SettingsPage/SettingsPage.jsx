@@ -193,9 +193,6 @@ export default function SettingsPage({ setPage, embedded = false }) {
               <LockKey size={18} weight="fill" />
               <div className={styles.passwordWrap}>
                 <span className={styles.rowValue}>••••••••</span>
-                <button type="button" className={styles.unhideButton} onClick={() => setShowPass(!showPass)}>
-                  {showPass ? <EyeSlash size={16} weight="bold" /> : <Eye size={16} weight="bold" />}
-                </button>
               </div>
             </div>
             <Button variant="outline" size="md" onClick={sendResetLink}>

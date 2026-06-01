@@ -1,12 +1,16 @@
 import { execFile } from 'node:child_process';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const PUBLIC_CONFIDENCE_THRESHOLD = 0.30;
 const MODEL_VERSION = 'xlm-roberta-base-round1';
-const REPO_ROOT = resolve(process.cwd(), '..');
+const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 const PREDICT_SCRIPT = resolve(REPO_ROOT, 'emotion-model', 'predict_mood.py');
 const MODEL_DIR = resolve(REPO_ROOT, 'emotion-model', 'checkpoints', MODEL_VERSION, 'best');
 const PYTHON_CANDIDATES = process.platform === 'win32'

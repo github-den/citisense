@@ -15,6 +15,8 @@ import {
   UserCircleCheck,
   UserCircleMinus,
   Warning,
+  PencilSimple,
+  Trash,
 } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@core/context/AuthContext.jsx';
@@ -32,6 +34,7 @@ import {
 import { isBookmarkedPost, setBookmarkedPost } from '@core/services/localState.js';
 import { formatCount } from '@core/utils/format.js';
 import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
+import { resolveFeedbackMood } from '@core/utils/mood.js';
 import { dedupeMediaItems, getMediaGridModel, inferMediaType } from '@core/utils/mediaGrid.js';
 import { lockPageScroll } from '@core/utils/lockPageScroll.js';
 import { FEEDBACK_REPORT_FLAGS } from '@core/constants/reportFlags.js';
@@ -254,9 +257,9 @@ function formatInlineComplaintStatus(post) {
   return status;
 }
 
-function FeedbackDetailsPopover({ post, typeLabel, relativeTime, exactTime, onFilterByType, onFilterByCategory, onFilterByLocation, onViewStatusTimeline, flags = [] }) {
-  const displayFlags = flags.filter(Boolean).join(', ');
+function FeedbackDetailsPopover({ post, typeLabel, relativeTime, exactTime, onFilterByType, onFilterByCategory, onFilterByLocation, onViewStatusTimeline }) {
   const displayLocation = formatDetailsLocation(post);
+  const moodSummary = resolveFeedbackMood(post);
 
   return (
     <div className={styles.feedbackDetails}>
@@ -305,16 +308,14 @@ function FeedbackDetailsPopover({ post, typeLabel, relativeTime, exactTime, onFi
         </div>
       </div>
 
-      <div className={styles.flagsSection}>
-        {displayFlags ? (
-          <>
-            <div className={styles.flagsSubheader}>This post might contain:</div>
-            <div className={styles.flagsCommaList}>{displayFlags}</div>
-          </>
-        ) : (
-          <div className={styles.flagsNone}>No content flags.</div>
-        )}
-      </div>
+      {moodSummary && (
+        <div className={styles.moodSection}>
+          <div className={styles.moodRow}>
+            <span className={styles.moodEmoji}>{moodSummary.emoji}</span>
+            <span className={styles.moodLabel}>The mood of this feedback is <strong>{moodSummary.label.toLowerCase()}</strong></span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -438,6 +439,7 @@ const FeedCard = forwardRef(({
   const [selectedReportFlags, setSelectedReportFlags] = useState([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [reactsOpen, setReactsOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState(null);
   const [hoveredAction, setHoveredAction] = useState(null);
   const pressTimer = useRef(null);
@@ -667,6 +669,50 @@ const FeedCard = forwardRef(({
     else if (post.user) router.push(`/profile/${post.user.replace('@', '')}`);
   }
 
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    router.push(`/write?edit=${post.id}`);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleteConfirmOpen(false);
+    showToast(`[DEBUG] Deleting post id=${post.id}`, 'info');
+    try {
+      if (post.id.startsWith('demo-')) {
+        const { deleteDemoPost } = await import('@core/services/demoPosts.js');
+        deleteDemoPost(post.id);
+        showToast('[DEBUG] Demo post deleted.', 'success');
+      } else {
+        const { supabase } = await import('@core/lib/supabase.js');
+        showToast(`[DEBUG] supabase=${supabase ? 'ok' : 'null'}`, 'info');
+        if (supabase) {
+          const { error } = await supabase
+            .from('feedbacks')
+            .delete()
+            .eq('id', post.id);
+
+          if (error) {
+            showToast(`[DEBUG] Delete error: ${error.message}`, 'error');
+            showToast(error.message || 'Unable to delete feedback.', 'error');
+            return;
+          }
+          showToast('[DEBUG] Delete succeeded!', 'success');
+        }
+      }
+      showToast('Feedback deleted.', 'success');
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      showToast(`[DEBUG] Exception: ${err.message}`, 'error');
+      showToast('An error occurred while deleting feedback.', 'error');
+    }
+  };
+
   return (
     <article 
       ref={ref}
@@ -748,7 +794,6 @@ const FeedCard = forwardRef(({
                   onFilterByCategory={onFilterByCategory}
                   onFilterByLocation={onFilterByLocation}
                   onViewStatusTimeline={onViewStatusTimeline}
-                  flags={post.flags || []}
                 />
               </Popover>
             </div>
@@ -770,6 +815,30 @@ const FeedCard = forwardRef(({
                 <BookmarkSimple size={20} weight={hoveredAction === 'save' ? 'duotone' : (bookmarked ? 'fill' : 'regular')} aria-hidden="true" />
               </button>
             </Tooltip>
+          )}
+          {isCurrentUser && post.status === 'Under Review' && (
+            <>
+              <Tooltip content="Edit" align="top">
+                <button 
+                  type="button" 
+                  className={styles.editButton} 
+                  onClick={handleEdit} 
+                  aria-label="Edit feedback"
+                >
+                  <PencilSimple size={20} weight="regular" aria-hidden="true" />
+                </button>
+              </Tooltip>
+              <Tooltip content="Delete" align="top">
+                <button 
+                  type="button" 
+                  className={styles.deleteButton} 
+                  onClick={handleDelete} 
+                  aria-label="Delete feedback"
+                >
+                  <Trash size={20} weight="regular" aria-hidden="true" />
+                </button>
+              </Tooltip>
+            </>
           )}
         </div>
       </div>
@@ -944,6 +1013,47 @@ const FeedCard = forwardRef(({
           onToggleFlag={toggleReportFlag}
           onSubmit={submitReport}
         />
+      ) : null}
+
+      {deleteConfirmOpen ? createPortal(
+        <div className={styles.modalOverlay} role="presentation" onMouseDown={() => setDeleteConfirmOpen(false)}>
+          <div
+            className={styles.reportModal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`delete-title-${post.id}`}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <h2 id={`delete-title-${post.id}`} className={styles.deleteModalTitle}>
+                <Trash size={18} weight="fill" className={styles.deleteModalIcon} />
+                Delete feedback
+              </h2>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setDeleteConfirmOpen(false)}
+                aria-label="Close delete modal"
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+            <div className={styles.reportModalBody}>
+              <p className={styles.deleteConfirmText}>
+                Are you sure you want to delete this feedback? This action cannot be undone.
+              </p>
+            </div>
+            <div className={styles.reportModalActions}>
+              <button type="button" className={styles.reportCancelButton} onClick={() => setDeleteConfirmOpen(false)}>
+                Cancel
+              </button>
+              <button type="button" className={styles.deleteConfirmButton} onClick={confirmDelete}>
+                <Trash size={14} weight="fill" /> Delete
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       ) : null}
 
     </article>

@@ -37,6 +37,7 @@ function buildTimeline(post) {
       status: post.status,
       when: post.closedAt ?? post.created_at,
       by: 'Assigned office',
+      note: post.status === 'Dismissed' ? post.evidenceNote : '',
     });
   } else {
     entries.unshift({
@@ -86,6 +87,7 @@ export default function StatusTimelinePage() {
                   <div className={styles.status}>{entry.status}</div>
                   <div className={styles.when}>{formatDateTime(entry.when)}</div>
                   <div className={styles.by}>Changed by: {entry.by}</div>
+                  {entry.note ? <div className={styles.note}>{entry.note}</div> : null}
                 </div>
               </article>
             ))}

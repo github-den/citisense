@@ -132,6 +132,32 @@
   background: var(--brand-soft);
 }
 
+.editButton,
+.deleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  color: var(--ui-text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.editButton:hover {
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+}
+
+.deleteButton:hover {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+}
+
 .metadataRow {
   display: flex;
   align-items: center;
@@ -763,29 +789,156 @@
   text-decoration: underline;
 }
 
-.flagsSection {
+/* Mood Section */
+.moodSection {
   border-top: 1px solid var(--ui-border);
   margin-top: -12px;
   padding-top: 20px;
   padding-bottom: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.flagsSubheader {
+.moodRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--ui-surface-subtle);
+  padding: 9px 12px;
+  border-radius: 8px;
+}
+
+.moodLabel {
   font-size: 13px;
-  font-weight: 500;
   color: var(--ui-text-subtle);
-  margin-bottom: 4px;
+  font-weight: 500;
 }
 
-.flagsCommaList {
+.moodLabel strong {
+  font-weight: 700;
+  color: var(--ui-text);
+}
+
+.moodNone {
+  font-size: 13px;
+  color: var(--ui-text-subtle);
+  font-style: italic;
+}
+
+.moodSectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--ui-text-subtle);
+}
+
+
+.moodHeader {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ui-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.moodComputationHeader {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.moodDisplay {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ui-surface-subtle);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+.moodEmoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.moodText {
   font-size: 13px;
   color: var(--ui-text);
-  font-weight: 500;
 }
 
-.flagsNone {
-  font-size: 13px;
+.moodText strong {
+  font-weight: 700;
+}
+
+.moodComputation {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.computationHeader {
+  font-weight: 600;
+  color: var(--ui-text-subtle);
+}
+
+.computationLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.computationMethod {
   color: var(--ui-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdownGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  background: rgba(248, 250, 252, 0.6);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-border);
+}
+
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.breakdownRow span {
+  font-weight: 500;
+  color: var(--ui-text-subtle);
+}
+
+.breakdownRow strong {
+  color: var(--ui-text);
+  font-weight: 600;
+}
+
+.subReactionsText {
+  font-size: 11px;
+  color: var(--ui-text-subtle);
+  font-style: italic;
+}
+
+.noData {
+  color: var(--ui-text-muted);
+  font-style: italic;
 }
 
 
@@ -1128,5 +1281,43 @@
   transform: scale(0.75) !important;
   transform-origin: bottom center !important;
 }
+
+.deleteConfirmText {
+  font-size: 14px;
+  color: var(--ui-text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.deleteModalTitle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.deleteModalIcon {
+  color: #ef4444;
+  flex-shrink: 0;
+}
+
+.deleteConfirmButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #ef4444;
+  color: #ffffff;
+  transition: background 0.15s ease;
+}
+
+.deleteConfirmButton:hover {
+  background: #dc2626;
+}
+
 
 

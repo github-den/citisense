@@ -12,6 +12,7 @@ import FeedCard from '../../components/FeedCard/FeedCard.jsx';
 import FeedCardSkeleton from '../../components/FeedCard/FeedCardSkeleton.jsx';
 import { useFeedboxGroups } from '@core/hooks/useFeedboxGroups.js';
 import { mapPosts } from '@core/utils/postMapper.js';
+import { summarizeMoodFromPosts, getMoodEmoji, formatMoodLabel } from '@core/utils/mood.js';
 import { SERVICE_CATEGORIES, URDANETA_BARANGAYS } from '../../constants/index.js';
 import styles from './FeedboxPage.module.css';
 
@@ -181,11 +182,14 @@ function formatGroupMeta(count, raises) {
   return `${feedbackLabel}, ${raiseLabel}`;
 }
 
-function GroupCard({ title, metaLabel, detailIcon: DetailIcon, detailText, onClick }) {
+function GroupCard({ title, metaLabel, detailIcon: DetailIcon, detailText, mood, emoji, onClick }) {
   return (
     <Card className={styles.feedboxCard}>
       <button type="button" className={styles.feedboxButton} onClick={onClick}>
         <div className={styles.cardBody}>
+          <div className={styles.cardMoodHeader}>
+            <span>MOOD: {emoji || '😶'} {mood || 'No mood data yet'}</span>
+          </div>
           <h2 className={styles.cardTitle}>
             <span className={styles.cardTitleText}>{title}</span>
           </h2>
@@ -247,12 +251,16 @@ export default function FeedboxPage() {
 
     return config.items.map((item) => {
       const matches = feedItems.filter((entry) => matchesFeedboxFilter(entry, activeTab, item));
+      const groupPosts = matches.map((entry) => entry.post);
+      const moodSummary = summarizeMoodFromPosts(groupPosts, { allowPrediction: true, minTotal: 1, minShare: 0 });
       
       return {
         label: item,
         count: matches.length,
         totalRaises: matches.reduce((sum, entry) => sum + Number(entry.row?.raises_count ?? 0), 0),
         detail: buildGroupDetail(matches, activeTab),
+        moodLabel: moodSummary?.mood ? formatMoodLabel(moodSummary.mood) : null,
+        moodEmoji: moodSummary?.mood ? getMoodEmoji(moodSummary.mood) : null,
       };
     }).sort((a, b) => b.count - a.count);
   }, [activeTab, feedItems]);
@@ -371,6 +379,8 @@ export default function FeedboxPage() {
                             metaLabel={formatGroupMeta(group.count, group.totalRaises)}
                             detailIcon={group.detail.icon}
                             detailText={group.detail.text}
+                            mood={group.moodLabel}
+                            emoji={group.moodEmoji}
                             onClick={() => selectGroupFilter(activeTab, group.label)}
                           />
                         ))}
@@ -387,6 +397,8 @@ export default function FeedboxPage() {
                       metaLabel={formatGroupMeta(group.count, group.totalRaises)}
                       detailIcon={group.detail.icon}
                       detailText={group.detail.text}
+                      mood={group.moodLabel}
+                      emoji={group.moodEmoji}
                       onClick={() => selectGroupFilter(activeTab, group.label)}
                     />
                   ))}
