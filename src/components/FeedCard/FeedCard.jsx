@@ -241,13 +241,14 @@ function formatStatusForDetails(post) {
 }
 
 function formatInlineComplaintStatus(post) {
-  if (post?.type !== 'complaint' || !post?.status) return '';
+  if (!post?.status) return '';
 
   const status = String(post.status).trim();
   const createdAt = new Date(post?.raw?.created_at ?? post?.created_at ?? Date.now());
   if (Number.isNaN(createdAt.getTime())) return status;
 
   if (status === 'Under Review') {
+    if (post.type !== 'complaint') return 'Under Review';
     const reviewDeadline = createdAt.getTime() + (3 * 24 * 60 * 60 * 1000);
     const remainingMs = reviewDeadline - Date.now();
     return remainingMs >= 0

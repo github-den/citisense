@@ -26,7 +26,7 @@ const STATUS_GROUPS = [
     subStatuses: [
       { id: 'in_progress', label: 'In Progress', status: 'in_progress' },
       { id: 'on_hold',     label: 'On Hold',     status: 'on_hold'     },
-      { id: 'resolved',    label: 'Completed',   status: 'resolved'    },
+      { id: 'resolved',    label: 'Resolved',    status: 'resolved'    },
     ],
   },
   { id: 'dismissed', label: 'Dismissed', icon: WarningCircle, status: 'dismissed' },
@@ -55,10 +55,15 @@ export default function TrackFeedbackPage({ onReady }) {
     currentBarangay: profile?.barangay,
   });
 
-  // Client-side status filter — null status (pre-migration rows) defaults to 'under_review'
+  // Client-side status filter
   const filteredPosts = posts.filter(p => {
-    const rawStatus = p.raw?.status ?? 'under_review';
-    return rawStatus === activeStatus;
+    let statusKey = 'under_review';
+    if (p.status === 'In Progress') statusKey = 'in_progress';
+    else if (p.status === 'On Hold') statusKey = 'on_hold';
+    else if (p.status === 'Resolved') statusKey = 'resolved';
+    else if (p.status === 'Dismissed') statusKey = 'dismissed';
+    else if (p.status === 'Verified') statusKey = 'resolved';
+    return statusKey === activeStatus;
   });
 
   const observer = useRef();
