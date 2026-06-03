@@ -272,14 +272,25 @@
 }
 
 .cardMoodHeader {
-  font-size: 11px;
-  font-weight: 800;
-  color: var(--ui-text-muted);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.moodEmoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.moodText {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ui-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  gap: 4px;
 }
 
 .feedboxTagRow {

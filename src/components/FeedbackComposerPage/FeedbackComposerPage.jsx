@@ -12,6 +12,7 @@ import {
   Paperclip,
   PencilSimpleLine,
   Star,
+  Target,
   Trash,
   Warning,
   WarningCircle,
@@ -32,6 +33,7 @@ import { queueToastAfterNavigation } from '../Toast/Toast.jsx';
 import { showToast } from '../Toast/Toast.jsx';
 import { supabase } from '@core/lib/supabase.js';
 import { normalizeIncidentLocationLabel } from '@core/utils/location.js';
+import MarkLocationModal from '../MarkLocationModal/MarkLocationModal.jsx';
 
 import styles from '../../views/WriteFeedbackPage/WriteFeedbackPage.module.css';
 
@@ -162,6 +164,8 @@ export default function FeedbackComposerPage({ setPage }) {
   const [mediaDragActive, setMediaDragActive] = useState(false);
 
   const [shouldFocusLocation, setShouldFocusLocation] = useState(false);
+  const [markedLocation, setMarkedLocation] = useState(null);
+  const [isMarkLocationModalOpen, setIsMarkLocationModalOpen] = useState(false);
   const validationTimer = useRef(null);
   const mediaRef = useRef(mediaItems);
   const fileInputRef = useRef(null);
@@ -391,6 +395,8 @@ export default function FeedbackComposerPage({ setPage }) {
     if (!form.barangay) return 'Please select an incident location.';
     const isBarangayValid = URDANETA_BARANGAYS.includes(form.barangay);
     if (!isBarangayValid) return 'Please select a valid incident location from the list.';
+
+    if (!markedLocation) return 'Please mark the incident location on the map.';
 
     return '';
   }
@@ -649,6 +655,7 @@ export default function FeedbackComposerPage({ setPage }) {
       service: form.service,
       barangay: form.barangay,
       location: form.barangay,
+      coordinates: markedLocation ? { latitude: markedLocation.latitude, longitude: markedLocation.longitude } : null,
       imageUrl: imageUrls[0] ?? null,
       imageUrls: imageUrls.slice(1),
       profile: {
@@ -814,6 +821,16 @@ export default function FeedbackComposerPage({ setPage }) {
                       variant="default"
                     />
 
+                    <button
+                      type="button"
+                      className={`${styles.markLocationBtn} ${markedLocation ? styles.markLocationBtnActive : ''}`}
+                      onClick={() => setIsMarkLocationModalOpen(true)}
+                    >
+                      <Target size={16} weight="fill" />
+                      <span>{markedLocation ? 'Update location' : 'Mark location'}</span>
+                      {markedLocation && <span className={styles.markLocationCheck}><CheckCircle size={14} weight="fill" /></span>}
+                    </button>
+
                   </div>
                 </section>
               </div>
@@ -958,6 +975,16 @@ export default function FeedbackComposerPage({ setPage }) {
           )}
         />
       ) : null}
+
+      <MarkLocationModal
+        open={isMarkLocationModalOpen}
+        onClose={() => setIsMarkLocationModalOpen(false)}
+        onConfirm={(location) => {
+          setMarkedLocation(location);
+          setIsMarkLocationModalOpen(false);
+        }}
+        initialLocation={markedLocation}
+      />
 
     </div>
   );

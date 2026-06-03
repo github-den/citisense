@@ -314,7 +314,7 @@ function FeedbackDetailsPopover({ post, typeLabel, relativeTime, exactTime, onFi
         <div className={styles.moodSection}>
           <div className={styles.moodRow}>
             <span className={styles.moodEmoji}>{moodSummary.emoji}</span>
-            <span className={styles.moodLabel}>The mood of this feedback is <strong>{moodSummary.label.toLowerCase()}</strong></span>
+            <span className={styles.moodLabel}>The mood of this feedback is most likely <strong>{moodSummary.label.toLowerCase()}</strong></span>
           </div>
         </div>
       )}
@@ -445,6 +445,9 @@ const FeedCard = forwardRef(({
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [hoveredReaction, setHoveredReaction] = useState(null);
   const [hoveredAction, setHoveredAction] = useState(null);
+  const [localRating, setLocalRating] = useState(post?.rating ?? 0);
+  const [ratingHover, setRatingHover] = useState(0);
+  const [ratingSaving, setRatingSaving] = useState(false);
   const pressTimer = useRef(null);
 
   const handleTouchStart = () => {
@@ -461,6 +464,43 @@ const FeedCard = forwardRef(({
   const relativeTime = formatRelativeTime(post.raw?.created_at ?? post.created_at ?? post.time);
   const exactTime = formatExactDate(post.raw?.created_at ?? post.created_at);
   const inlineStatus = formatInlineComplaintStatus(post);
+  const moodSummary = resolveFeedbackMood(post);
+
+  const isResolved = post?.status === 'Resolved';
+  const showRating = isResolved && isCurrentUser;
+  const displayRating = ratingHover || localRating;
+
+  async function handleRate(value) {
+    if (ratingSaving) return;
+    setRatingSaving(true);
+    setLocalRating(value);
+
+    try {
+      if (post.id.startsWith('demo-')) {
+        // Demo handling
+      } else {
+        const { supabase } = await import('@core/lib/supabase.js');
+        if (supabase) {
+          const { error } = await supabase
+            .from('feedbacks')
+            .update({ rating: value })
+            .eq('id', post.id);
+
+          if (error) {
+            setLocalRating(post?.rating ?? 0);
+            showToast('Unable to save your rating.', 'error');
+            return;
+          }
+        }
+      }
+      showToast('Rating saved!', 'success');
+    } catch {
+      setLocalRating(post?.rating ?? 0);
+      showToast('Unable to save your rating.', 'error');
+    } finally {
+      setRatingSaving(false);
+    }
+  }
 
 
 
@@ -774,6 +814,14 @@ const FeedCard = forwardRef(({
                   </Tooltip>
                 </>
               ) : null}
+              {moodSummary ? (
+                <>
+                  <span className={styles.metadataSeparator}>·</span>
+                  <span className={styles.moodInline}>
+                    {moodSummary.emoji} {moodSummary.label}
+                  </span>
+                </>
+              ) : null}
               <span className={styles.metadataSeparator}>·</span>
               <Popover
                 open={detailsOpen}
@@ -1057,7 +1105,10 @@ const FeedCard = forwardRef(({
         post={post}
         isOpen={timelineOpen}
         onClose={() => setTimelineOpen(false)}
-        currentUserId={currentUserId}
+        isCurrentUser={isCurrentUser}
+        rating={localRating}
+        onRate={handleRate}
+        ratingSaving={ratingSaving}
       />
 
     </article>

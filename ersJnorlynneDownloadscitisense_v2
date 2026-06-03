@@ -1,0 +1,30 @@
+[33mcommit 45513c9cc3cb3404b565e1a723e08bc20b6a444b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: github-den <ddedios_20ur1924@psu.edu.ph>
+Date:   Wed Jun 3 12:08:54 2026 +0800
+
+    refactor: use Hugging Face model citisense/emotion-detection in moodPredictor
+
+[33mcommit 1b9aef799d5fdc855bec72ac2293272eb0260908[m
+Author: github-den <ddedios_20ur1924@psu.edu.ph>
+Date:   Tue Jun 2 15:19:13 2026 +0800
+
+    6226319
+
+[33mcommit 621fd11f4559e1077e55b699a7ee56bd25a0fefd[m
+Author: github-den <ddedios_20ur1924@psu.edu.ph>
+Date:   Tue Jun 2 04:20:41 2026 +0800
+
+    6226420
+
+[33mcommit f80078dd07689a6798767694493830eceb6d4020[m
+Author: github-den <ddedios_20ur1924@psu.edu.ph>
+Date:   Tue Jun 2 02:46:19 2026 +0800
+
+    6226
+
+[33mcommit ee68e74010e731562914d988757c2258c01df962[m
+Merge: 2a33e8f 77e0745
+Author: github-den <ddedios_20ur1924@psu.edu.ph>
+Date:   Sun May 31 12:50:55 2026 +0800
+
+    smol

@@ -2,7 +2,43 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ClockCountdown, Star, X } from '@phosphor-icons/react';
 import { showToast } from '../Toast/Toast.jsx';
+import { lockPageScroll } from '@core/utils/lockPageScroll.js';
 import styles from './FeedbackTimelineModal.module.css';
+import feedCardStyles from './FeedCard.module.css';
+
+// ─── Star Rating Component ────────────────────────────────────────────────────
+
+function StarRating({ rating, onRate, isSaving }) {
+  const [hover, setHover] = useState(0);
+  const displayRating = hover || rating;
+
+  return (
+    <div className={styles.ratingSection}>
+      <span className={styles.ratingLabel}>Rate this resolution:</span>
+      <div className={styles.stars}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            className={styles.starBtn}
+            onClick={() => !isSaving && onRate(star)}
+            onMouseEnter={() => setHover(star)}
+            onMouseLeave={() => setHover(0)}
+            disabled={isSaving}
+            aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+          >
+            <Star
+              size={22}
+              weight={star <= displayRating ? 'fill' : 'regular'}
+              className={star <= displayRating ? styles.starFilled : styles.starEmpty}
+            />
+          </button>
+        ))}
+      </div>
+      <span className={styles.ratingValue}>{displayRating > 0 ? `${displayRating}/5` : '—'}</span>
+    </div>
+  );
+}
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -101,100 +137,25 @@ function buildTimeline(post) {
   return steps;
 }
 
-// ─── Star Rating ─────────────────────────────────────────────────────────────
-
-function StarRating({ postId, initialRating, onRated }) {
-  const [hover, setHover] = useState(0);
-  const [saved, setSaved] = useState(initialRating ?? 0);
-  const [saving, setSaving] = useState(false);
-
-  async function handleRate(value) {
-    if (saving) return;
-    setSaving(true);
-    setSaved(value);
-
-    try {
-      const { supabase } = await import('@core/lib/supabase.js');
-      const { error } = await supabase
-        .from('feedbacks')
-        .update({ rating: value })
-        .eq('id', postId);
-
-      if (error) {
-        setSaved(initialRating ?? 0);
-        showToast('Unable to save your rating.', 'error');
-      } else {
-        onRated?.(value);
-      }
-    } catch {
-      setSaved(initialRating ?? 0);
-      showToast('Unable to save your rating.', 'error');
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const display = hover || saved;
-
-  return (
-    <div className={styles.ratingSection}>
-      <span className={styles.ratingLabel}>
-        {saved ? 'Your rating' : 'Rate this resolution'}
-      </span>
-      <div
-        className={styles.stars}
-        role="group"
-        aria-label="Rate this resolution 1 to 5 stars"
-      >
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            aria-label={`${n} star${n > 1 ? 's' : ''}`}
-            aria-pressed={saved === n}
-            className={styles.starBtn}
-            onMouseEnter={() => setHover(n)}
-            onMouseLeave={() => setHover(0)}
-            onClick={() => handleRate(n)}
-            disabled={saving}
-          >
-            <Star
-              size={26}
-              weight={display >= n ? 'fill' : 'regular'}
-              className={display >= n ? styles.starFilled : styles.starEmpty}
-            />
-          </button>
-        ))}
-      </div>
-      {saved > 0 && (
-        <span className={styles.ratingValue}>{saved}/5</span>
-      )}
-    </div>
-  );
-}
-
 // ─── Modal ───────────────────────────────────────────────────────────────────
 
-export default function FeedbackTimelineModal({ post, isOpen, onClose, currentUserId }) {
-  const [localRating, setLocalRating] = useState(post?.rating ?? 0);
+export default function FeedbackTimelineModal({ 
+  post, 
+  isOpen, 
+  onClose, 
+  isCurrentUser = false, 
+  rating = 0, 
+  onRate = () => {}, 
+  ratingSaving = false 
+}) {
   const overlayRef = useRef(null);
 
   const timeline = buildTimeline(post);
-  const isResolved = post?.status === 'Resolved';
-  const isAuthor = currentUserId && post?.userId && currentUserId === post?.userId;
-  const showRating = isResolved && isAuthor;
-
-  // Sync rating if post changes
-  useEffect(() => {
-    setLocalRating(post?.rating ?? 0);
-  }, [post?.id, post?.rating]);
 
   // Lock scroll when open
   useEffect(() => {
     if (!isOpen) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
+    return lockPageScroll();
   }, [isOpen]);
 
   // Close on Escape
@@ -210,12 +171,12 @@ export default function FeedbackTimelineModal({ post, isOpen, onClose, currentUs
   const modal = (
     <div
       ref={overlayRef}
-      className={styles.overlay}
+      className={feedCardStyles.modalOverlay}
       role="presentation"
       onMouseDown={(e) => { if (e.target === overlayRef.current) onClose(); }}
     >
       <div
-        className={styles.modal}
+        className={feedCardStyles.reportModal}
         role="dialog"
         aria-modal="true"
         aria-label="Status Timeline"
@@ -281,14 +242,15 @@ export default function FeedbackTimelineModal({ post, isOpen, onClose, currentUs
           ))}
         </div>
 
-        {/* Star rating — only for resolved feedback by author */}
-        {showRating && (
-          <StarRating
-            postId={post.id}
-            initialRating={localRating}
-            onRated={(v) => setLocalRating(v)}
+        {/* Star Rating Section */}
+        {isCurrentUser && post?.status === 'Resolved' && (
+          <StarRating 
+            rating={rating} 
+            onRate={onRate} 
+            isSaving={ratingSaving} 
           />
         )}
+
       </div>
     </div>
   );

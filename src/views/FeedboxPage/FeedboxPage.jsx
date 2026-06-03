@@ -188,7 +188,8 @@ function GroupCard({ title, metaLabel, detailIcon: DetailIcon, detailText, mood,
       <button type="button" className={styles.feedboxButton} onClick={onClick}>
         <div className={styles.cardBody}>
           <div className={styles.cardMoodHeader}>
-            <span>MOOD: {emoji || '😶'} {mood || 'No mood data yet'}</span>
+            <span className={styles.moodEmoji}>{emoji || '😶'}</span>
+            <span className={styles.moodText}>{mood || 'No mood data yet'}</span>
           </div>
           <h2 className={styles.cardTitle}>
             <span className={styles.cardTitleText}>{title}</span>

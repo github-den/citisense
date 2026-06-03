@@ -992,12 +992,14 @@
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 24px;
   animation: fadeIn 0.15s ease;
 }
 
@@ -1013,49 +1015,52 @@
 
 .reportModal {
   background: #ffffff;
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  max-height: calc(100vh - 32px);
-  border-radius: 18px;
-  box-shadow: 0 24px 48px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.06);
+  width: fit-content;
+  max-width: 90vw;
+  max-height: 85vh;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(226, 232, 240, 0.6);
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modalHeader {
-  padding: 16px 20px;
+  padding: 20px 24px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--ui-border);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
 }
 
 .modalHeader h2 {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .modalClose {
-  background: transparent;
-  border: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  background: var(--ui-surface-subtle);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 12px;
   color: var(--ui-text-subtle);
-  transition: background 0.2s, color 0.2s, opacity 0.2s;
+  transition: all 0.15s ease;
 }
 
 .modalClose:hover {
   background: var(--ui-surface-hover);
   color: var(--ui-text);
+  border-color: var(--ui-border);
 }
 
 .modalClose:disabled {
@@ -1080,27 +1085,30 @@
 
 .reportFlagList {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
 }
 
 .reportFlagOption {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 20px;
-  background: #ffffff;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  transition:
-    background-color 160ms var(--ease-out),
-    color 160ms var(--ease-out);
+  transition: background 0.15s ease, color 0.15s ease;
+  position: relative;
+  white-space: nowrap;
 }
 
 .reportFlagOption:hover {
-  background: var(--ui-surface-hover);
+  background: rgba(239, 68, 68, 0.04);
 }
 
 .reportFlagOptionActive {
-  background: color-mix(in srgb, var(--brand-soft) 46%, #ffffff);
+  background: rgba(239, 68, 68, 0.08);
 }
 
 .reportFlagOption input {
@@ -1110,28 +1118,23 @@
 }
 
 .reportFlagMarker {
-  width: 18px;
-  height: 18px;
-  margin-top: 1px;
-  flex: 0 0 auto;
-  border-radius: 999px;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #d1d5db;
-  display: inline-flex;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--ui-border);
+  display: flex;
   align-items: center;
   justify-content: center;
-  transition:
-    border-color 160ms var(--ease-out),
-    background-color 160ms var(--ease-out),
-    color 160ms var(--ease-out),
-    transform 160ms var(--ease-out);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+  color: transparent;
+  background: #ffffff;
 }
 
 .reportFlagOptionActive .reportFlagMarker {
-  border-color: transparent;
-  background: transparent;
-  color: #dc2626;
+  border-color: #ef4444;
+  background: #ef4444;
+  color: #ffffff;
 }
 
 .reportFlagLabel {
@@ -1140,15 +1143,19 @@
   font-weight: 700;
   line-height: 1.45;
   padding-top: 1px;
-  white-space: nowrap;
+}
+
+.reportFlagOptionActive .reportFlagLabel {
+  color: #b91c1c;
 }
 
 .reportModalActions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 20px 20px;
-  background: #ffffff;
+  gap: 12px;
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+  background: rgba(248, 250, 252, 0.5);
 }
 
 .reportModalBody::-webkit-scrollbar {
@@ -1163,45 +1170,49 @@
 
 .reportCancelButton,
 .reportSubmitButton {
-  min-height: 36px;
-  border-radius: 8px;
-  padding: 0 14px;
-  font-size: 13px;
-  font-weight: 800;
+  min-height: 40px;
+  border-radius: 10px;
+  padding: 0 20px;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    background-color 160ms var(--ease-out),
-    border-color 160ms var(--ease-out),
-    color 160ms var(--ease-out),
-    opacity 160ms var(--ease-out);
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .reportCancelButton {
-  border: 1px solid var(--ui-border);
+  border: 1.5px solid var(--ui-border);
   background: #ffffff;
-  color: var(--ui-text-muted);
+  color: var(--ui-text);
 }
 
 .reportCancelButton:hover {
   background: var(--ui-surface-hover);
-  color: var(--ui-text);
+  border-color: var(--ui-border-hover);
 }
 
 .reportSubmitButton {
-  border: 1px solid #ef4444;
+  border: 1.5px solid #ef4444;
   background: #ef4444;
   color: #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
 .reportSubmitButton:hover {
   background: #dc2626;
   border-color: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .reportCancelButton:disabled,
 .reportSubmitButton:disabled {
-  cursor: default;
-  opacity: 1;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .reportSubmitButton:disabled {
@@ -1318,5 +1329,64 @@
   background: #dc2626;
 }
 
+/* Star Rating Section */
+.ratingSection {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(248, 250, 252, 0.6);
+  border-radius: 999px;
+  border: 1px solid var(--ui-border);
+}
 
+.ratingLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ui-text-subtle);
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.starBtn {
+  padding: 2px;
+  border-radius: 4px;
+  background: transparent;
+  border: 0;
+  transition: background 0.15s ease;
+  line-height: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.starBtn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.starBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.starFilled {
+  color: #f59e0b;
+}
+
+.starEmpty {
+  color: #cbd5e1;
+}
+
+.ratingValue {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ui-text);
+  min-width: 24px;
+  text-align: right;
+}
 

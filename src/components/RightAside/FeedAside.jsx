@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Archive, CaretRight, HandHeart, MapPin, SmileyWink } from '@phosphor-icons/react';
+import { Archive, CaretRight, HandHeart, Info, MapPin, SmileyWink } from '@phosphor-icons/react';
 import { useCityMood } from '@core/hooks/useCityMood.js';
 import { useTopicFeedboxes } from '@core/hooks/useTopicFeedboxes.js';
 import { getMoodLabel } from './shared.jsx';
 import { supabase } from '@core/lib/supabase.js';
+import Popover from '../ui/Popover.jsx';
 import styles from './RightAside.module.css';
 
 function FeedboxPlaceholders() {
@@ -121,7 +122,7 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
           <SmileyWink size={18} weight="fill" color="var(--ui-accent)" /> City Mood
         </div>
         <div className={styles.moodTop}>
-          <div>
+          <div className={styles.moodHeaderRow}>
             <div className={`${styles.moodTitle} ${!cityMoodLabel ? styles.moodTitleEmpty : ''}`}>
               <span>
                 {cityMoodLabel ? (
@@ -131,11 +132,27 @@ export default function FeedAside({ setPage, setSearchQuery, onReady }) {
                 )}
               </span>
             </div>
-            {cityMoodLabel ? (
-              <div className={styles.moodSub}>
-                {percentage}% of feedbacks for the last 30 days is {cityMoodLabel.toLowerCase()}.{topCategories.length > 0 && ` These feedbacks are mostly about ${formatTopCategories(topCategories)}.`}
-              </div>
-            ) : null}
+            {cityMoodLabel && (
+              <Popover
+                hoverable
+                align="top"
+                trigger={
+                  <button type="button" className={styles.moodInfoBtn} aria-label="Mood details">
+                    <Info size={16} weight="fill" />
+                  </button>
+                }
+                panelClassName={styles.moodPopover}
+              >
+                <div className={styles.moodPopoverContent}>
+                  {percentage}% of feedbacks for the last 30 days is {cityMoodLabel.toLowerCase()}.
+                  {topCategories.length > 0 && (
+                    <span className={styles.moodPopoverSub}>
+                      These feedbacks are mostly about {formatTopCategories(topCategories)}.
+                    </span>
+                  )}
+                </div>
+              </Popover>
+            )}
           </div>
         </div>
       </section>

@@ -433,10 +433,51 @@
 
 .detailFields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   align-items: center;
   min-width: 0;
+}
+
+.markLocationBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--ui-accent) 34%, white);
+  background: transparent;
+  color: var(--ui-accent);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.markLocationBtn:hover {
+  background: color-mix(in srgb, var(--ui-accent) 6%, white);
+}
+
+.markLocationBtnActive {
+  border-color: color-mix(in srgb, #16a34a 40%, white);
+  background: color-mix(in srgb, #16a34a 6%, white);
+  color: #15803d;
+}
+
+.markLocationBtnActive:hover {
+  background: color-mix(in srgb, #16a34a 10%, white);
+  border-color: color-mix(in srgb, #16a34a 55%, white);
+}
+
+.markLocationCheck {
+  display: inline-flex;
+  align-items: center;
+  color: #16a34a;
 }
 
 
