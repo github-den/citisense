@@ -9,10 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const PUBLIC_CONFIDENCE_THRESHOLD = 0.30;
-const MODEL_VERSION = 'xlm-roberta-base-round1';
+const MODEL_VERSION = 'citisense/emotion-detection';
 const REPO_ROOT = resolve(__dirname, '..', '..', '..');
 const PREDICT_SCRIPT = resolve(REPO_ROOT, 'emotion-model', 'predict_mood.py');
-const MODEL_DIR = resolve(REPO_ROOT, 'emotion-model', 'checkpoints', MODEL_VERSION, 'best');
 const PYTHON_CANDIDATES = process.platform === 'win32'
   ? ['python', 'py']
   : ['python3', 'python'];
@@ -126,7 +125,7 @@ export async function predictFeedbackMood(text) {
     try {
       const { stdout } = await execFileAsync(
         command,
-        [PREDICT_SCRIPT, '--model-dir', MODEL_DIR, '--text', content],
+        [PREDICT_SCRIPT, '--model-id', MODEL_VERSION, '--text', content],
         {
           cwd: REPO_ROOT,
           maxBuffer: 1024 * 1024,
